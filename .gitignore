@@ -16,3 +16,5 @@ pull_data/
 testme.py
 Cloud.session
 uploads.json
+cloudmap.json
+.DS_Store
