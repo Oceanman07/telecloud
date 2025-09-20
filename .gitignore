@@ -11,6 +11,8 @@ wheels/
 
 .env
 docs/
-data/
+push_data/
+pull_data/
 testme.py
 Cloud.session
+uploads.json
