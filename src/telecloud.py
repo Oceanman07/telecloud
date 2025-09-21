@@ -6,42 +6,20 @@ import time
 from colorama import Style, Fore
 from telethon import TelegramClient
 
-from . import aes
 from .protector import encrypt_file, decrypt_file
 from .utils import get_checksum
-from .elements import EXT_IDENTIFIER
+from .elements import EXT_IDENTIFIER, NAMING_FILE_MAX_LENGTH
 from .cloudmapmanager import (
     get_cloudmap,
     update_cloudmap,
-    get_salt_from_cloudmap,
     get_existed_checksums,
-    get_existed_file_paths_on_cloud
+    get_existed_file_names_on_cloudmap,
+    get_existed_file_paths_on_cloudmap
 )
 
 # 6 upload/retrieve files at the time
 SEMAPHORE = asyncio.Semaphore(6)
 
-
-def _prepare_pushed_data(upload_directory):
-    existed_file_paths = get_existed_file_paths_on_cloud()
-    checksums = get_existed_checksums()
-
-    file_paths = []
-    for dir_path, _, file_names in os.walk(upload_directory):
-        for file_name in file_names:
-            file_path = os.path.abspath(os.path.join(dir_path, file_name))
-
-            if file_path not in existed_file_paths:
-                file_paths.append(file_path)
-                continue
-
-            if get_checksum(file_path, is_holder=False) not in checksums:
-                file_paths.append(file_path)
-                continue
-
-            print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Remained{Style.RESET_ALL} {file_path}')
-
-    return file_paths
 
 async def _upload_file(client: TelegramClient, key, file_path):
     async with SEMAPHORE:
@@ -60,30 +38,49 @@ async def _upload_file(client: TelegramClient, key, file_path):
 
         return {
             'success': True,
+            'msg_id': msg.id,
             'attrib': {
-                'msg_id': msg.id,
                 'checksum': checksum_holder['checksum'],
-                'file_path': file_path
+                'file_path': file_path,
+                'time': time.strftime('%d-%m-%y %H|%M|%S')
             }
         }
 
-async def push_data(client: TelegramClient, upload_directory, password):
+def _prepare_pushed_data(upload_directory):
+    existed_file_paths = get_existed_file_paths_on_cloudmap()
+    checksums = get_existed_checksums()
+
+    file_paths = []
+    for dir_path, _, file_names in os.walk(upload_directory):
+        for file_name in file_names:
+            file_path = os.path.abspath(os.path.join(dir_path, file_name))
+
+            if file_path not in existed_file_paths:
+                file_paths.append(file_path)
+                continue
+
+            if get_checksum(file_path, is_holder=False) not in checksums:
+                file_paths.append(file_path)
+                continue
+
+            print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Remained{Style.RESET_ALL}   {file_path}')
+
+    return file_paths
+
+async def push_data(client: TelegramClient, encryption_key, upload_directory):
     new_cloudmap = get_cloudmap()
 
-    salt = get_salt_from_cloudmap()
-    symmetric_key = aes.generate_key(password, salt)
-
-    file_paths = _prepare_pushed_data(upload_directory)
-    tasks = [_upload_file(client, symmetric_key, file_path) for file_path in file_paths]
+    prepared_data = _prepare_pushed_data(upload_directory)
+    tasks = [_upload_file(client, encryption_key, file_path) for file_path in prepared_data]
 
     count = 0
     for task in asyncio.as_completed(tasks):
         result = await task
         if result['success']:
-            new_cloudmap[result['attrib']['msg_id']] = result['attrib']
+            new_cloudmap[result['msg_id']] = result['attrib']
 
             count += 1
-            print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Pushed{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}')
+            print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}')
 
         if os.path.exists(result['attrib']['file_path'] + EXT_IDENTIFIER):
             os.remove(result['attrib']['file_path'] + EXT_IDENTIFIER)
@@ -106,17 +103,41 @@ async def _download_file(client: TelegramClient, key, msg_id, saved_path):
             'file_path': saved_path
         }
 
-async def pull_data(client: TelegramClient, saved_directory, password):
+def _prepare_pulled_data(saved_directory):
     cloudmap = get_cloudmap()
+    existed_file_names = get_existed_file_names_on_cloudmap()
 
-    salt = get_salt_from_cloudmap()
-    symmetric_key = aes.generate_key(password, salt)
-
-    tasks = []
+    saved_paths = []
     for msg_id in cloudmap:
         file_name = os.path.basename(cloudmap[msg_id]['file_path'])
+
+        # If a file has multiple uploads, when downloading we need to make its name different with time
+        # since it shares the same name
+        if existed_file_names.count(file_name) != 1:
+            differentor = '.' + msg_id + '.' + cloudmap[msg_id]['time']
+            base, ext = os.path.splitext(file_name)
+            new_file_name = base + differentor + ext
+
+            if len(new_file_name) > NAMING_FILE_MAX_LENGTH:
+                file_name = base[:-(len(differentor) + len(ext))] + differentor + ext
+            else:
+                file_name = new_file_name
+
         saved_path = os.path.abspath(os.path.join(saved_directory, file_name)) + EXT_IDENTIFIER
-        tasks.append(_download_file(client, symmetric_key, msg_id, saved_path))
+        saved_paths.append(
+            {
+                'msg_id': msg_id,
+                'saved_path': saved_path
+            }
+        )
+
+    return saved_paths
+
+async def pull_data(client: TelegramClient, decryption_key, saved_directory):
+    prepared_data = _prepare_pulled_data(saved_directory)
+    tasks = [
+        _download_file(client, decryption_key, data['msg_id'], data['saved_path']) for data in prepared_data
+    ]
 
     count = 0
     for task in asyncio.as_completed(tasks):
@@ -125,5 +146,5 @@ async def pull_data(client: TelegramClient, saved_directory, password):
             os.remove(result['file_path'])
 
             count += 1
-            print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path'][:-10]}')
+            print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path'][:-10]}')
 

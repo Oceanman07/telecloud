@@ -33,9 +33,13 @@ def get_salt_from_cloudmap():
     salt = read_file(SALT_PATH)
     return base64.b64encode(salt)
 
-def get_existed_file_paths_on_cloud():
+def get_existed_file_paths_on_cloudmap():
     cloudmap = get_cloudmap()
     return [cloudmap[msg_id]['file_path'] for msg_id in cloudmap]
+
+def get_existed_file_names_on_cloudmap():
+    cloudmap = get_cloudmap()
+    return [os.path.basename(cloudmap[msg_id]['file_path']) for msg_id in cloudmap]
 
 def get_existed_checksums():
     cloudmap = get_cloudmap()
