@@ -6,6 +6,7 @@ from telethon import TelegramClient
 
 from src.parser import parse_args
 from src.telecloud import push_data, pull_data
+from src.elements import SESSION_PATH
 from src.cloudmapmanager import check_health_cloudmap, setup_cloudmap
 
 load_dotenv()
@@ -20,7 +21,7 @@ async def delete_msgs(client: TelegramClient):
 async def main():
     args = parse_args()
 
-    async with TelegramClient('Cloud', api_id=api_id, api_hash=api_hash) as client:
+    async with TelegramClient(SESSION_PATH, api_id=api_id, api_hash=api_hash) as client:
         # await delete_msgs(client)
         # return
 

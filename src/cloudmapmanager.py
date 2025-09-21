@@ -3,11 +3,12 @@ import json
 import base64
 
 from .utils import read_file, write_file
-
-STORED_CLOUDMAP_PATHS = os.path.join(os.path.expanduser('~'), '.telecloud')
-CLOUDMAP_PATH = os.path.join(STORED_CLOUDMAP_PATHS, 'cloudmap.json')
-SALT_PATH = os.path.join(STORED_CLOUDMAP_PATHS, 'salt')
-INCLUDED_CLOUDMAP_PATHS = (STORED_CLOUDMAP_PATHS, CLOUDMAP_PATH, SALT_PATH)
+from .elements import (
+    SALT_PATH,
+    CLOUDMAP_PATH,
+    STORED_CLOUDMAP_PATHS,
+    INCLUDED_CLOUDMAP_PATHS
+)
 
 
 def setup_cloudmap():
