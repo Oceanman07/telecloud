@@ -7,7 +7,7 @@ from .utils import read_file, read_file_in_chunk, write_file
 from .elements import NONCE_LENGTH, TAG_LENGTH, CHUNK_LENGTH_FOR_LARGE_FILE
 
 
-def encrypt_file(key, file_path):
+def encrypt_file(key, file_path, loop: asyncio.AbstractEventLoop, future: asyncio.Future):
     if os.path.getsize(file_path) <= CHUNK_LENGTH_FOR_LARGE_FILE:
         original_data = read_file(file_path)
         encrypted_data = aes.encrypt(key, original_data)
@@ -17,6 +17,9 @@ def encrypt_file(key, file_path):
             for chunk in read_file_in_chunk(file_path):
                 encrypted_chunk = aes.encrypt(key, chunk)
                 f.write(encrypted_chunk)
+
+    # just await to finish the encryption process then no need to hold data
+    loop.call_soon_threadsafe(future.set_result, None)
 
 def decrypt_file(key, file_path, loop: asyncio.AbstractEventLoop, future: asyncio.Future):
     # Plusing nonce=12bytes and tag=16bytes

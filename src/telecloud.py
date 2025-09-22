@@ -23,24 +23,31 @@ SEMAPHORE = asyncio.Semaphore(6)
 
 async def _upload_file(client: TelegramClient, key, file_path):
     async with SEMAPHORE:
-        checksum_holder = {}
-        hash_checksum_thread = threading.Thread(target=get_checksum, args=(file_path, checksum_holder))
+        loop = asyncio.get_running_loop()
+
+        checksum_value_future = loop.create_future()
+        hash_checksum_thread = threading.Thread(
+            target=get_checksum, args=(file_path, loop, checksum_value_future)
+        )
         hash_checksum_thread.start()
 
-        file_encryption_thread = threading.Thread(target=encrypt_file, args=(key, file_path))
+        encryption_process_future = loop.create_future()
+        file_encryption_thread = threading.Thread(
+            target=encrypt_file, args=(key, file_path, loop, encryption_process_future)
+        )
         file_encryption_thread.start()
 
-        while hash_checksum_thread.is_alive() or file_encryption_thread.is_alive():
-            await asyncio.sleep(0.02)
+        checksum = await checksum_value_future
+        await encryption_process_future
 
-        file = await client.upload_file(file_path + EXT_IDENTIFIER, file_name=checksum_holder['checksum'])
+        file = await client.upload_file(file_path + EXT_IDENTIFIER, file_name=checksum)
         msg = await client.send_file('me', file)
 
         return {
             'success': True,
             'msg_id': msg.id,
             'attrib': {
-                'checksum': checksum_holder['checksum'],
+                'checksum': checksum,
                 'file_path': file_path,
                 'time': time.strftime('%d-%m-%y %H|%M|%S')
             }
@@ -59,7 +66,7 @@ def _prepare_pushed_data(upload_directory):
                 file_paths.append(file_path)
                 continue
 
-            if get_checksum(file_path, is_holder=False) not in checksums:
+            if get_checksum(file_path, None, None, is_holder=False) not in checksums:
                 file_paths.append(file_path)
                 continue
 
