@@ -31,7 +31,7 @@ async def _upload_file(client: TelegramClient, key, file_path):
         file_encryption_thread.start()
 
         while hash_checksum_thread.is_alive() or file_encryption_thread.is_alive():
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.02)
 
         file = await client.upload_file(file_path + EXT_IDENTIFIER, file_name=checksum_holder['checksum'])
         msg = await client.send_file('me', file)
@@ -92,16 +92,16 @@ async def _download_file(client: TelegramClient, key, msg_id, saved_path):
         msg = await client.get_messages('me', ids=int(msg_id))
         await client.download_file(msg.document, file=saved_path)
 
-        file_decryption_thread = threading.Thread(target=decrypt_file, args=(key, saved_path))
+        loop = asyncio.get_running_loop()
+        future = loop.create_future()
+
+        file_decryption_thread = threading.Thread(target=decrypt_file, args=(key, saved_path, loop, future))
         file_decryption_thread.start()
 
-        while file_decryption_thread.is_alive():
-            await asyncio.sleep(0.5)
-
-        return {
-            'success': True,
-            'file_path': saved_path
-        }
+        # result of the decryption process success or failed
+        result = await future
+        result['file_path'] = saved_path
+        return result
 
 def _prepare_pulled_data(saved_directory):
     cloudmap = get_cloudmap()
@@ -119,6 +119,7 @@ def _prepare_pulled_data(saved_directory):
             new_file_name = base + differentor + ext
 
             if len(new_file_name) > NAMING_FILE_MAX_LENGTH:
+                # prevent filename reaches the limit (255 chars)
                 file_name = base[:-(len(differentor) + len(ext))] + differentor + ext
             else:
                 file_name = new_file_name
@@ -142,9 +143,11 @@ async def pull_data(client: TelegramClient, decryption_key, saved_directory):
     count = 0
     for task in asyncio.as_completed(tasks):
         result = await task
-        if result['success']:
-            os.remove(result['file_path'])
+        os.remove(result['file_path'])
 
+        if result['success']:
             count += 1
             print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path'][:-10]}')
+        else:
+            print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}  {Fore.RED}{result['error']}{Fore.RESET}   {result['file_path'][:-10]}')
 
