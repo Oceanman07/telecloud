@@ -31,7 +31,7 @@ def get_cloudmap():
 
 def get_salt_from_cloudmap():
     salt = read_file(SALT_PATH)
-    return base64.b64encode(salt)
+    return base64.b64decode(salt)
 
 def get_existed_file_paths_on_cloudmap():
     cloudmap = get_cloudmap()
