@@ -2,7 +2,6 @@ import os
 import asyncio
 
 from . import aes
-from .elements import EXT_IDENTIFIER
 from .utils import read_file, read_file_in_chunk, write_file
 from .elements import NONCE_LENGTH, TAG_LENGTH, CHUNK_LENGTH_FOR_LARGE_FILE
 

@@ -7,7 +7,7 @@ from colorama import Style, Fore
 from telethon import TelegramClient
 
 from .protector import encrypt_file, decrypt_file
-from .utils import get_checksum
+from .utils import get_checksum, get_random_number
 from .elements import NAMING_FILE_MAX_LENGTH
 from .cloudmapmanager import (
     get_cloudmap,
@@ -32,24 +32,27 @@ async def _upload_file(client: TelegramClient, key, file_path):
         )
         hash_checksum_thread.start()
 
+        # checksum is now the name of encrypted file -> prevent long file name from reaching over 255 chars
+        # adding random number to prevent checksum name conflict > two different files could have the same data
         checksum = await checksum_value_future
+        encrypted_file_path = get_random_number() + '_' + checksum
 
         # encrypt file before uploading to cloud
         encryption_process_future = loop.create_future()
         file_encryption_thread = threading.Thread(
-            target=encrypt_file, args=(key, file_path, checksum, loop, encryption_process_future)
+            target=encrypt_file, args=(key, file_path, encrypted_file_path, loop, encryption_process_future)
         )
         file_encryption_thread.start()
 
         await encryption_process_future
 
-        # checksum is now the name of encrypted file -> prevent long file name from reaching over 255 chars
-        file = await client.upload_file(checksum)
+        file = await client.upload_file(encrypted_file_path, file_name=encrypted_file_path)
         msg = await client.send_file('me', file)
 
         return {
             'success': True,
             'msg_id': msg.id,
+            'encrypted_file_path': encrypted_file_path,
             'attrib': {
                 'checksum': checksum,
                 'file_path': file_path,
@@ -93,8 +96,7 @@ async def push_data(client: TelegramClient, encryption_key, upload_directory):
             count += 1
             print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}')
 
-        if os.path.exists(result['attrib']['checksum']):
-            os.remove(result['attrib']['checksum'])
+            os.remove(result['encrypted_file_path'])
 
     update_cloudmap(new_cloudmap)
 

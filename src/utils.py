@@ -1,9 +1,13 @@
 import asyncio
 import hashlib
+import random
 from typing import Optional
 
 from .elements import NONCE_LENGTH, TAG_LENGTH, CHUNK_LENGTH_FOR_LARGE_FILE
 
+
+def get_random_number():
+    return str(random.randint(1000000000, 9999999999))
 
 def read_file(file_path, mode='rb'):
     with open(file_path, mode=mode) as f:
