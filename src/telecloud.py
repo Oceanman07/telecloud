@@ -8,7 +8,7 @@ from telethon import TelegramClient
 
 from .protector import encrypt_file, decrypt_file
 from .utils import get_checksum
-from .elements import EXT_IDENTIFIER, NAMING_FILE_MAX_LENGTH
+from .elements import NAMING_FILE_MAX_LENGTH
 from .cloudmapmanager import (
     get_cloudmap,
     update_cloudmap,
@@ -25,22 +25,26 @@ async def _upload_file(client: TelegramClient, key, file_path):
     async with SEMAPHORE:
         loop = asyncio.get_running_loop()
 
+        # hash file content -> get checksum
         checksum_value_future = loop.create_future()
         hash_checksum_thread = threading.Thread(
             target=get_checksum, args=(file_path, loop, checksum_value_future)
         )
         hash_checksum_thread.start()
 
+        checksum = await checksum_value_future
+
+        # encrypt file before uploading to cloud
         encryption_process_future = loop.create_future()
         file_encryption_thread = threading.Thread(
-            target=encrypt_file, args=(key, file_path, loop, encryption_process_future)
+            target=encrypt_file, args=(key, file_path, checksum, loop, encryption_process_future)
         )
         file_encryption_thread.start()
 
-        checksum = await checksum_value_future
         await encryption_process_future
 
-        file = await client.upload_file(file_path + EXT_IDENTIFIER, file_name=checksum)
+        # checksum is now the name of encrypted file -> prevent long file name from reaching over 255 chars
+        file = await client.upload_file(checksum)
         msg = await client.send_file('me', file)
 
         return {
@@ -89,25 +93,30 @@ async def push_data(client: TelegramClient, encryption_key, upload_directory):
             count += 1
             print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}')
 
-        if os.path.exists(result['attrib']['file_path'] + EXT_IDENTIFIER):
-            os.remove(result['attrib']['file_path'] + EXT_IDENTIFIER)
+        if os.path.exists(result['attrib']['checksum']):
+            os.remove(result['attrib']['checksum'])
 
     update_cloudmap(new_cloudmap)
 
 async def _download_file(client: TelegramClient, key, msg_id, saved_path):
     async with SEMAPHORE:
         msg = await client.get_messages('me', ids=int(msg_id))
-        await client.download_file(msg.document, file=saved_path)
+        checksum = msg.document.attributes[0].file_name
+        encrypted_file_from_cloud = saved_path.replace(os.path.basename(saved_path), checksum)
+        await client.download_file(msg.document, file=encrypted_file_from_cloud)
 
         loop = asyncio.get_running_loop()
         future = loop.create_future()
 
-        file_decryption_thread = threading.Thread(target=decrypt_file, args=(key, saved_path, loop, future))
+        file_decryption_thread = threading.Thread(
+            target=decrypt_file, args=(key, encrypted_file_from_cloud, saved_path, loop, future)
+        )
         file_decryption_thread.start()
 
         # result of the decryption process success or failed
         result = await future
         result['file_path'] = saved_path
+        result['encrypted_file_from_cloud'] = encrypted_file_from_cloud
         return result
 
 def _prepare_pulled_data(saved_directory):
@@ -131,7 +140,7 @@ def _prepare_pulled_data(saved_directory):
             else:
                 file_name = new_file_name
 
-        saved_path = os.path.abspath(os.path.join(saved_directory, file_name)) + EXT_IDENTIFIER
+        saved_path = os.path.abspath(os.path.join(saved_directory, file_name))
         saved_paths.append(
             {
                 'msg_id': msg_id,
@@ -150,7 +159,7 @@ async def pull_data(client: TelegramClient, decryption_key, saved_directory):
     count = 0
     for task in asyncio.as_completed(tasks):
         result = await task
-        os.remove(result['file_path'])
+        os.remove(result['encrypted_file_from_cloud'])
 
         if result['success']:
             count += 1
