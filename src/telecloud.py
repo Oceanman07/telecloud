@@ -17,8 +17,8 @@ from .cloudmapmanager import (
     get_existed_file_paths_on_cloudmap
 )
 
-# 6 upload/retrieve files at the time
-SEMAPHORE = asyncio.Semaphore(6)
+# 8 upload/retrieve files at the time
+SEMAPHORE = asyncio.Semaphore(8)
 
 
 async def _upload_file(client: TelegramClient, symmetric_key, file_path):
@@ -46,7 +46,7 @@ async def _upload_file(client: TelegramClient, symmetric_key, file_path):
 
         await encryption_process_future
 
-        file = await client.upload_file(encrypted_file_path, file_name=encrypted_file_path)
+        file = await client.upload_file(encrypted_file_path, file_name=encrypted_file_path, part_size_kb=512)
         msg = await client.send_file('me', file)
 
         return {
@@ -130,7 +130,7 @@ async def _download_file(client: TelegramClient, symmetric_key, msg_id, saved_pa
         msg = await client.get_messages('me', ids=int(msg_id))
         checksum = msg.document.attributes[0].file_name
         encrypted_file_from_cloud = saved_path.replace(os.path.basename(saved_path), checksum)
-        await client.download_file(msg.document, file=encrypted_file_from_cloud)
+        await client.download_file(msg.document, file=encrypted_file_from_cloud, part_size_kb=512)
 
         loop = asyncio.get_running_loop()
         future = loop.create_future()
