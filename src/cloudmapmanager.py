@@ -5,6 +5,7 @@ import base64
 from .utils import read_file, write_file
 from .elements import (
     SALT_PATH,
+    KEY_TEST_PATH,
     CLOUDMAP_PATH,
     STORED_CLOUDMAP_PATHS,
     INCLUDED_CLOUDMAP_PATHS
@@ -14,11 +15,17 @@ from .elements import (
 def setup_cloudmap():
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
 
+    cloudmap = {}
+    write_file(CLOUDMAP_PATH, json.dumps(cloudmap), mode='w')
+
     salt = os.urandom(32)
     write_file(SALT_PATH, base64.b64encode(salt).decode(), mode='w')
 
-    cloudmap = {}
-    write_file(CLOUDMAP_PATH, json.dumps(cloudmap), mode='w')
+    write_file(
+        KEY_TEST_PATH,
+        'detect if the symmetric key is valid or not, if not then no need to start pulling files',
+        mode='w'
+    )
 
 def check_health_cloudmap():
     return all(os.path.exists(path) for path in INCLUDED_CLOUDMAP_PATHS)

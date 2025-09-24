@@ -7,8 +7,8 @@ from colorama import Style, Fore
 from telethon import TelegramClient
 
 from .protector import encrypt_file, decrypt_file
-from .utils import get_checksum, get_random_number
-from .elements import NAMING_FILE_MAX_LENGTH
+from .utils import get_checksum, get_random_number, write_file
+from .elements import KEY_TEST_PATH, NAMING_FILE_MAX_LENGTH
 from .cloudmapmanager import (
     get_cloudmap,
     update_cloudmap,
@@ -21,7 +21,7 @@ from .cloudmapmanager import (
 SEMAPHORE = asyncio.Semaphore(6)
 
 
-async def _upload_file(client: TelegramClient, key, file_path):
+async def _upload_file(client: TelegramClient, symmetric_key, file_path):
     async with SEMAPHORE:
         loop = asyncio.get_running_loop()
 
@@ -40,7 +40,7 @@ async def _upload_file(client: TelegramClient, key, file_path):
         # encrypt file before uploading to cloud
         encryption_process_future = loop.create_future()
         file_encryption_thread = threading.Thread(
-            target=encrypt_file, args=(key, file_path, encrypted_file_path, loop, encryption_process_future)
+            target=encrypt_file, args=(symmetric_key, file_path, encrypted_file_path, loop, encryption_process_future)
         )
         file_encryption_thread.start()
 
@@ -81,11 +81,36 @@ def _prepare_pushed_data(upload_directory):
 
     return file_paths
 
-async def push_data(client: TelegramClient, encryption_key, upload_directory):
+async def _encrypt_key_test(symmetric_key):
+    write_file(
+        KEY_TEST_PATH,
+        'detect if the symmetric key is valid or not, if not then no need to start pulling files',
+        mode='w'
+    )
+
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
+
+    thread = threading.Thread(
+        target=encrypt_file, args=(symmetric_key, KEY_TEST_PATH, KEY_TEST_PATH, loop, future)
+    )
+    thread.start()
+
+    await future
+
+async def push_data(client: TelegramClient, symmetric_key, upload_directory):
+    # decrypt key_test first to ensure the key (password) remains the same
+    key_test_result = await _decrypt_key_test(symmetric_key)
+    if not key_test_result['success']:
+        print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Password does not match{Style.RESET_ALL}')
+        return
+
+    await _encrypt_key_test(symmetric_key)
+
     new_cloudmap = get_cloudmap()
 
     prepared_data = _prepare_pushed_data(upload_directory)
-    tasks = [_upload_file(client, encryption_key, file_path) for file_path in prepared_data]
+    tasks = [_upload_file(client, symmetric_key, file_path) for file_path in prepared_data]
 
     count = 0
     for task in asyncio.as_completed(tasks):
@@ -100,7 +125,7 @@ async def push_data(client: TelegramClient, encryption_key, upload_directory):
 
     update_cloudmap(new_cloudmap)
 
-async def _download_file(client: TelegramClient, key, msg_id, saved_path):
+async def _download_file(client: TelegramClient, symmetric_key, msg_id, saved_path):
     async with SEMAPHORE:
         msg = await client.get_messages('me', ids=int(msg_id))
         checksum = msg.document.attributes[0].file_name
@@ -111,7 +136,7 @@ async def _download_file(client: TelegramClient, key, msg_id, saved_path):
         future = loop.create_future()
 
         file_decryption_thread = threading.Thread(
-            target=decrypt_file, args=(key, encrypted_file_from_cloud, saved_path, loop, future)
+            target=decrypt_file, args=(symmetric_key, encrypted_file_from_cloud, saved_path, loop, future)
         )
         file_decryption_thread.start()
 
@@ -152,20 +177,37 @@ def _prepare_pulled_data(saved_directory):
 
     return saved_paths
 
-async def pull_data(client: TelegramClient, decryption_key, saved_directory):
+async def _decrypt_key_test(symmetric_key):
+    """
+    test the symmetric_key to see if its valid or not, if not then stop
+    """
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
+
+    thread = threading.Thread(
+        target=decrypt_file, args=(symmetric_key, KEY_TEST_PATH, KEY_TEST_PATH, loop, future)
+    )
+    thread.start()
+
+    return await future
+
+async def pull_data(client: TelegramClient, symmetric_key, saved_directory):
+    key_test_result = await _decrypt_key_test(symmetric_key)
+    if not key_test_result['success']:
+        print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - {key_test_result['error']}{Style.RESET_ALL}')
+        return
+
     prepared_data = _prepare_pulled_data(saved_directory)
     tasks = [
-        _download_file(client, decryption_key, data['msg_id'], data['saved_path']) for data in prepared_data
+        _download_file(client, symmetric_key, data['msg_id'], data['saved_path']) for data in prepared_data
     ]
 
     count = 0
     for task in asyncio.as_completed(tasks):
         result = await task
-        os.remove(result['encrypted_file_from_cloud'])
 
-        if result['success']:
-            count += 1
-            print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path'][:-10]}')
-        else:
-            print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}  {Fore.RED}{result['error']}{Fore.RESET}   {result['file_path'][:-10]}')
+        count += 1
+        print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path'][:-10]}')
+
+        os.remove(result['encrypted_file_from_cloud'])
 
