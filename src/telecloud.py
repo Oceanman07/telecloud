@@ -197,6 +197,8 @@ async def pull_data(client: TelegramClient, symmetric_key, saved_directory):
         print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - {key_test_result['error']}{Style.RESET_ALL}')
         return
 
+    await _encrypt_key_test(symmetric_key)
+
     prepared_data = _prepare_pulled_data(saved_directory)
     tasks = [
         _download_file(client, symmetric_key, data['msg_id'], data['saved_path']) for data in prepared_data

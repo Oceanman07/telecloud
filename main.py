@@ -22,13 +22,13 @@ async def delete_msgs(client: TelegramClient):
 async def main():
     args = parse_args()
 
+    if not check_health_cloudmap():
+        setup_cloudmap()
+
     async with TelegramClient(SESSION_PATH, api_id=api_id, api_hash=api_hash) as client:
         # await delete_msgs(client)
         # os.remove('/Users/supertempclient/.telecloud/cloudmap.json')
         # return
-
-        if not check_health_cloudmap():
-            setup_cloudmap()
 
         salt = get_salt_from_cloudmap()
         symmetric_key = aes.generate_key(args.password, salt)

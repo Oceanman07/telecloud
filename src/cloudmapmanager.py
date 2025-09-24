@@ -1,6 +1,13 @@
 import os
 import json
 import base64
+import time
+from getpass import getpass
+
+from colorama import Style, Fore
+
+from .aes import generate_key
+from .protector import encrypt_file
 
 from .utils import read_file, write_file
 from .elements import (
@@ -15,17 +22,35 @@ from .elements import (
 def setup_cloudmap():
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
 
+    # cloudmap stores file info -> msg_id, checksum, file_path, time
     cloudmap = {}
     write_file(CLOUDMAP_PATH, json.dumps(cloudmap), mode='w')
 
+    # salt + password to generate key
     salt = os.urandom(32)
     write_file(SALT_PATH, base64.b64encode(salt).decode(), mode='w')
 
+    # a string for testing key
     write_file(
         KEY_TEST_PATH,
         'detect if the symmetric key is valid or not, if not then no need to start pulling files',
         mode='w'
     )
+
+    # setup password
+    print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Setup password:{Style.RESET_ALL}')
+    print(f'Remember! {Style.BRIGHT}One password{Style.RESET_ALL} to rule them all, {Style.BRIGHT}One Password{Style.RESET_ALL} to find them, {Style.BRIGHT}One Password{Style.RESET_ALL} to bring them all, and in case you forget you might {Style.BRIGHT}lose{Style.RESET_ALL} them all. So, choose wisely!')
+    password = input('>_ ')
+    repeated = getpass('Confirm:\n>_ ')
+
+    if password != repeated:
+        print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Password does not match{Style.RESET_ALL}')
+        os.remove(SALT_PATH)
+        os.remove(KEY_TEST_PATH)
+        exit()
+
+    symmetric_key = generate_key(password, salt)
+    encrypt_file(symmetric_key, KEY_TEST_PATH, KEY_TEST_PATH, None, None)
 
 def check_health_cloudmap():
     return all(os.path.exists(path) for path in INCLUDED_CLOUDMAP_PATHS)

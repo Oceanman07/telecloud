@@ -17,8 +17,9 @@ def encrypt_file(key, src_path, dns_path, loop: asyncio.AbstractEventLoop, futur
                 encrypted_chunk = aes.encrypt(key, chunk)
                 f.write(encrypted_chunk)
 
-    # just await to finish the encryption process then no need to hold data
-    loop.call_soon_threadsafe(future.set_result, None)
+    if loop and future:
+        # just await to finish the encryption process then no need to hold data
+        loop.call_soon_threadsafe(future.set_result, None)
 
 def decrypt_file(key, src_path, dns_path, loop: asyncio.AbstractEventLoop, future: asyncio.Future):
     # Plusing nonce=12bytes and tag=16bytes
