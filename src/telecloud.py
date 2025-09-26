@@ -10,6 +10,7 @@ from .protector import encrypt_file, decrypt_file
 from .utils import get_checksum, get_random_number, write_file
 from .elements import KEY_TEST_PATH, NAMING_FILE_MAX_LENGTH
 from .cloudmapmanager import (
+    get_cloud_channel_id,
     get_cloudmap,
     update_cloudmap,
     get_existed_checksums,
@@ -21,7 +22,7 @@ from .cloudmapmanager import (
 SEMAPHORE = asyncio.Semaphore(8)
 
 
-async def _upload_file(client: TelegramClient, symmetric_key, file_path):
+async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, file_path):
     async with SEMAPHORE:
         loop = asyncio.get_running_loop()
 
@@ -47,7 +48,7 @@ async def _upload_file(client: TelegramClient, symmetric_key, file_path):
         await encryption_process_future
 
         file = await client.upload_file(encrypted_file_path, file_name=encrypted_file_path, part_size_kb=512)
-        msg = await client.send_file('me', file)
+        msg = await client.send_file(cloud_channel, file)
 
         return {
             'success': True,
@@ -109,8 +110,9 @@ async def push_data(client: TelegramClient, symmetric_key, upload_directory):
 
     new_cloudmap = get_cloudmap()
 
+    cloud_channel = await client.get_entity(get_cloud_channel_id())
     prepared_data = _prepare_pushed_data(upload_directory)
-    tasks = [_upload_file(client, symmetric_key, file_path) for file_path in prepared_data]
+    tasks = [_upload_file(client, cloud_channel, symmetric_key, file_path) for file_path in prepared_data]
 
     count = 0
     for task in asyncio.as_completed(tasks):
@@ -125,9 +127,9 @@ async def push_data(client: TelegramClient, symmetric_key, upload_directory):
 
     update_cloudmap(new_cloudmap)
 
-async def _download_file(client: TelegramClient, symmetric_key, msg_id, saved_path):
+async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, msg_id, saved_path):
     async with SEMAPHORE:
-        msg = await client.get_messages('me', ids=int(msg_id))
+        msg = await client.get_messages(cloud_channel, ids=int(msg_id))
         checksum = msg.document.attributes[0].file_name
         encrypted_file_from_cloud = saved_path.replace(os.path.basename(saved_path), checksum)
         await client.download_file(msg.document, file=encrypted_file_from_cloud, part_size_kb=512)
@@ -199,10 +201,9 @@ async def pull_data(client: TelegramClient, symmetric_key, saved_directory):
 
     await _encrypt_key_test(symmetric_key)
 
+    cloud_channel = await client.get_entity(get_cloud_channel_id())
     prepared_data = _prepare_pulled_data(saved_directory)
-    tasks = [
-        _download_file(client, symmetric_key, data['msg_id'], data['saved_path']) for data in prepared_data
-    ]
+    tasks = [_download_file(client, cloud_channel, symmetric_key, data['msg_id'], data['saved_path']) for data in prepared_data]
 
     count = 0
     for task in asyncio.as_completed(tasks):

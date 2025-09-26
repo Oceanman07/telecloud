@@ -5,6 +5,8 @@ import time
 from getpass import getpass
 
 from colorama import Style, Fore
+from telethon import TelegramClient
+from telethon.tl.functions.channels import CreateChannelRequest
 
 from .aes import generate_key
 from .protector import encrypt_file
@@ -15,11 +17,12 @@ from .elements import (
     KEY_TEST_PATH,
     CLOUDMAP_PATH,
     STORED_CLOUDMAP_PATHS,
+    CLOUD_CHANNEL_ID_PATH,
     INCLUDED_CLOUDMAP_PATHS
 )
 
 
-def setup_cloudmap():
+async def setup_cloudmap(client: TelegramClient):
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
 
     # cloudmap stores file info -> msg_id, checksum, file_path, time
@@ -29,6 +32,11 @@ def setup_cloudmap():
     # salt + password to generate key
     salt = os.urandom(32)
     write_file(SALT_PATH, base64.b64encode(salt).decode(), mode='w')
+
+    # files will be uploaded in this channel
+    if not os.path.exists(CLOUD_CHANNEL_ID_PATH):
+        channel_id = await _create_channel(client)
+        write_file(CLOUD_CHANNEL_ID_PATH, str(channel_id), mode='w')
 
     # a string for testing key
     write_file(
@@ -54,6 +62,17 @@ def setup_cloudmap():
 
 def check_health_cloudmap():
     return all(os.path.exists(path) for path in INCLUDED_CLOUDMAP_PATHS)
+
+async def _create_channel(client: TelegramClient):
+    channel = await client(CreateChannelRequest(
+        title='TeleCloud',
+        about='Free cloud',
+        megagroup=False
+    ))
+    return channel.chats[0].id
+
+def get_cloud_channel_id():
+    return int(read_file(CLOUD_CHANNEL_ID_PATH))
 
 def update_cloudmap(cloudmap):
     write_file(CLOUDMAP_PATH, json.dumps(cloudmap, ensure_ascii=False), mode='w')
