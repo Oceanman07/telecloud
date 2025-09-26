@@ -57,7 +57,7 @@ async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, fil
             'attrib': {
                 'checksum': checksum,
                 'file_path': file_path,
-                'time': time.strftime('%d-%m-%y %H|%M|%S')
+                'time': time.strftime('%d-%m-%y.%H-%M-%S')
             }
         }
 
