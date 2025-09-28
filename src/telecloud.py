@@ -1,3 +1,4 @@
+import json
 import os
 import asyncio
 import threading
@@ -7,8 +8,13 @@ from colorama import Style, Fore
 from telethon import TelegramClient
 
 from .protector import encrypt_file, decrypt_file
-from .utils import get_checksum, get_random_number, write_file
-from .elements import KEY_TEST_PATH, NAMING_FILE_MAX_LENGTH
+from .elements import FILE_PART_LENGTH_FOR_LARGE_FILE, KEY_TEST_PATH, NAMING_FILE_MAX_LENGTH
+from .utils import (
+    get_checksum,
+    get_random_number,
+    write_file,
+    read_file_in_chunk
+)
 from .cloudmapmanager import (
     get_cloud_channel_id,
     get_cloudmap,
@@ -22,8 +28,79 @@ from .cloudmapmanager import (
 SEMAPHORE = asyncio.Semaphore(8)
 
 
+async def _upload_small_file(client: TelegramClient, cloud_channel, file_path):
+    progress_upload = lambda sent, total: print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.YELLOW} Pushing{Style.RESET_ALL} {file_path}:{Style.BRIGHT}{sent/total:.0%}{Style.RESET_ALL}')
+
+    file = await client.upload_file(file_path, file_name=file_path, part_size_kb=512, progress_callback=progress_upload)
+    msg = await client.send_file(cloud_channel, file)
+    os.remove(file_path)
+
+    return msg.id
+
+def _split_big_file(file_path, loop: asyncio.AbstractEventLoop, future: asyncio.Future):
+    max_split_times = 7
+    split_count = 0
+
+    part_num = 1
+    file_parts = []
+    written_size = 0
+    for encrypted_chunk in read_file_in_chunk(file_path, is_encrypted=True):
+        file_part = file_path + '-' + str(part_num)
+        with open(file_part, 'ab') as f:
+            f.write(encrypted_chunk)
+            written_size += len(encrypted_chunk)
+
+        split_count += 1
+        if split_count == max_split_times:
+            part_num += 1
+            file_parts.append(file_part)
+            split_count = 0
+
+        elif written_size >= FILE_PART_LENGTH_FOR_LARGE_FILE:
+            file_parts.append(file_part)
+
+    loop.call_soon_threadsafe(future.set_result, file_parts)
+
+async def _upload_big_file(client: TelegramClient, cloud_channel, file_path):
+    semaphore = asyncio.Semaphore(3)
+
+    async def upload(file_part):
+        async with semaphore:
+            progress_upload = lambda sent, total: print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.YELLOW} Pushing{Style.RESET_ALL} {file_part}:{Style.BRIGHT}{sent/total:.0%}{Style.RESET_ALL}')
+            file = await client.upload_file(file_part, file_name=file_part, part_size_kb=512, progress_callback=progress_upload)
+            msg = await client.send_file(cloud_channel, file)
+            os.remove(file_part)
+
+            return {file_part: msg.id}
+
+    loop = asyncio.get_running_loop()
+    file_parts_value_future = loop.create_future()
+
+    split_big_file_thread = threading.Thread(
+        target=_split_big_file, args=(file_path, loop, file_parts_value_future)
+    )
+    split_big_file_thread.start()
+
+    file_parts = await file_parts_value_future
+    os.remove(file_path)
+
+    upload_info = {}
+    upload_info_path = file_path + '-0'
+
+    tasks = [upload(file) for file in file_parts]
+    for task in asyncio.as_completed(tasks):
+        msg_id = await task
+        upload_info.update(msg_id)
+
+    await loop.run_in_executor(None, write_file, upload_info_path, json.dumps(upload_info), 'w')
+    msg = await upload(upload_info_path)
+
+    return msg[upload_info_path]
+
 async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, file_path):
     async with SEMAPHORE:
+        print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushing{Style.RESET_ALL} {file_path}')
+
         loop = asyncio.get_running_loop()
 
         # hash file content -> get checksum
@@ -47,17 +124,19 @@ async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, fil
 
         await encryption_process_future
 
-        file = await client.upload_file(encrypted_file_path, file_name=encrypted_file_path, part_size_kb=512)
-        msg = await client.send_file(cloud_channel, file)
-
-        os.remove(encrypted_file_path)
+        file_size = os.path.getsize(file_path)
+        if file_size < FILE_PART_LENGTH_FOR_LARGE_FILE:
+            msg_id = await _upload_small_file(client, cloud_channel, encrypted_file_path)
+        else:
+            msg_id = await _upload_big_file(client, cloud_channel, encrypted_file_path)
 
         return {
             'success': True,
-            'msg_id': msg.id,
+            'msg_id': msg_id,
             'attrib': {
                 'checksum': checksum,
                 'file_path': file_path,
+                'file_size': file_size,
                 'time': time.strftime('%d-%m-%y.%H-%M-%S')
             }
         }
@@ -128,6 +207,8 @@ async def push_data(client: TelegramClient, symmetric_key, upload_directory):
 
 async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, msg_id, saved_path):
     async with SEMAPHORE:
+        print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulling{Style.RESET_ALL} {saved_path}')
+
         msg = await client.get_messages(cloud_channel, ids=int(msg_id))
         file_from_cloud = msg.document.attributes[0].file_name
         await client.download_file(msg.document, file=file_from_cloud, part_size_kb=512)
@@ -210,5 +291,5 @@ async def pull_data(client: TelegramClient, symmetric_key, saved_directory):
         result = await task
 
         count += 1
-        print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path'][:-10]}')
+        print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path']}')
 

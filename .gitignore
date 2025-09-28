@@ -18,3 +18,4 @@ Cloud.session
 uploads.json
 cloudmap.json
 .DS_Store
+bigfile
