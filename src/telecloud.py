@@ -50,10 +50,11 @@ async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, fil
         file = await client.upload_file(encrypted_file_path, file_name=encrypted_file_path, part_size_kb=512)
         msg = await client.send_file(cloud_channel, file)
 
+        os.remove(encrypted_file_path)
+
         return {
             'success': True,
             'msg_id': msg.id,
-            'encrypted_file_path': encrypted_file_path,
             'attrib': {
                 'checksum': checksum,
                 'file_path': file_path,
@@ -123,29 +124,28 @@ async def push_data(client: TelegramClient, symmetric_key, upload_directory):
             count += 1
             print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}')
 
-            os.remove(result['encrypted_file_path'])
-
     update_cloudmap(new_cloudmap)
 
 async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, msg_id, saved_path):
     async with SEMAPHORE:
         msg = await client.get_messages(cloud_channel, ids=int(msg_id))
-        checksum = msg.document.attributes[0].file_name
-        encrypted_file_from_cloud = saved_path.replace(os.path.basename(saved_path), checksum)
-        await client.download_file(msg.document, file=encrypted_file_from_cloud, part_size_kb=512)
+        file_from_cloud = msg.document.attributes[0].file_name
+        await client.download_file(msg.document, file=file_from_cloud, part_size_kb=512)
 
         loop = asyncio.get_running_loop()
         future = loop.create_future()
 
         file_decryption_thread = threading.Thread(
-            target=decrypt_file, args=(symmetric_key, encrypted_file_from_cloud, saved_path, loop, future)
+            target=decrypt_file, args=(symmetric_key, file_from_cloud, saved_path, loop, future)
         )
         file_decryption_thread.start()
 
         # result of the decryption process success or failed
         result = await future
         result['file_path'] = saved_path
-        result['encrypted_file_from_cloud'] = encrypted_file_from_cloud
+
+        os.remove(file_from_cloud)
+
         return result
 
 def _prepare_pulled_data(saved_directory):
@@ -211,6 +211,4 @@ async def pull_data(client: TelegramClient, symmetric_key, saved_directory):
 
         count += 1
         print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path'][:-10]}')
-
-        os.remove(result['encrypted_file_from_cloud'])
 
