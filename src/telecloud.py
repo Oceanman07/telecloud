@@ -30,9 +30,7 @@ SEMAPHORE = asyncio.Semaphore(8)
 
 
 async def _upload_small_file(client: TelegramClient, cloud_channel, file_path):
-    progress_upload = lambda sent, total: print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.YELLOW} Pushing{Style.RESET_ALL} {file_path}:{Style.BRIGHT}{sent/total:.0%}{Style.RESET_ALL}')
-
-    file = await client.upload_file(file_path, file_name=file_path, part_size_kb=512, progress_callback=progress_upload)
+    file = await client.upload_file(file_path, file_name=file_path, part_size_kb=512)
     msg = await client.send_file(cloud_channel, file)
     os.remove(file_path)
 
@@ -68,8 +66,7 @@ async def _upload_big_file(client: TelegramClient, cloud_channel, file_path):
 
     async def upload(file_part):
         async with semaphore:
-            progress_upload = lambda sent, total: print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.YELLOW} Pushing{Style.RESET_ALL} {file_part}:{Style.BRIGHT}{sent/total:.0%}{Style.RESET_ALL}')
-            file = await client.upload_file(file_part, file_name=file_part, part_size_kb=512, progress_callback=progress_upload)
+            file = await client.upload_file(file_part, file_name=file_part, part_size_kb=512)
             msg = await client.send_file(cloud_channel, file)
             os.remove(file_part)
 
@@ -77,6 +74,9 @@ async def _upload_big_file(client: TelegramClient, cloud_channel, file_path):
 
     loop = asyncio.get_running_loop()
 
+    # Split the big file into multiple smaller files
+    # -> prevent reaching over 2GB max
+    # -> faster when sending concurrency part files
     file_parts_value_future = loop.create_future()
     split_big_file_thread = threading.Thread(
         target=_split_big_file, args=(file_path, loop, file_parts_value_future)
@@ -134,7 +134,6 @@ async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, fil
             msg_id = await _upload_big_file(client, cloud_channel, encrypted_file_path)
 
         return {
-            'success': True,
             'msg_id': msg_id,
             'attrib': {
                 'checksum': checksum,
@@ -200,11 +199,10 @@ async def push_data(client: TelegramClient, symmetric_key, upload_directory):
     count = 0
     for task in asyncio.as_completed(tasks):
         result = await task
-        if result['success']:
-            new_cloudmap[result['msg_id']] = result['attrib']
+        new_cloudmap[result['msg_id']] = result['attrib']
 
-            count += 1
-            print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}')
+        count += 1
+        print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}')
 
     update_cloudmap(new_cloudmap)
 
@@ -212,6 +210,7 @@ async def _download_small_file(client: TelegramClient, cloud_channel, msg_id):
     msg = await client.get_messages(cloud_channel, ids=msg_id)
     file_from_cloud = msg.document.attributes[0].file_name
     await client.download_file(msg.document, file=file_from_cloud, part_size_kb=512)
+
     return file_from_cloud
 
 def _merge_file_parts(file_parts, loop: asyncio.AbstractEventLoop, future: asyncio.Future):
@@ -234,7 +233,6 @@ async def _download_big_file(client: TelegramClient, cloud_channel, msg_id):
         async with semaphore:
             msg = await client.get_messages(cloud_channel, ids=id)
             file_from_cloud = msg.document.attributes[0].file_name
-            print(f'Downloading... {file_from_cloud}')
             await client.download_file(msg.document, file=file_from_cloud, part_size_kb=512)
             return file_from_cloud
 
@@ -257,7 +255,6 @@ async def _download_big_file(client: TelegramClient, cloud_channel, msg_id):
 
     return await merged_file_value_future
 
-
 async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, file):
     async with SEMAPHORE:
         print(f'{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulling{Style.RESET_ALL} {file['saved_path']}')
@@ -275,7 +272,6 @@ async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, f
         )
         file_decryption_thread.start()
 
-        # result of the decryption process success or failed
         result = await future
         result['file_path'] = file['saved_path']
 
