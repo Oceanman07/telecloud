@@ -6,13 +6,15 @@ from getpass import getpass
 
 from colorama import Style, Fore
 from telethon import TelegramClient
-from telethon.tl.functions.channels import CreateChannelRequest
+from telethon.tl.functions.channels import CreateChannelRequest, EditPhotoRequest
+from telethon.tl.types import InputChatUploadedPhoto
 
 from .aes import generate_key
 from .protector import encrypt_file
 
 from .utils import read_file, write_file
 from .elements import (
+    LOGO_PATH,
     SALT_PATH,
     KEY_TEST_PATH,
     CLOUDMAP_PATH,
@@ -23,6 +25,7 @@ from .elements import (
 
 
 async def setup_cloudmap(client: TelegramClient):
+    # this is the very first step -> write_file doesnt need to by async since the blocking doesn affect at all
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
 
     # cloudmap stores file info -> msg_id, checksum, file_path, time
@@ -37,6 +40,7 @@ async def setup_cloudmap(client: TelegramClient):
     if not os.path.exists(CLOUD_CHANNEL_ID_PATH):
         channel_id = await _create_channel(client)
         write_file(CLOUD_CHANNEL_ID_PATH, str(channel_id), mode="w")
+        await _set_channel_photo(client)
 
     # a string for testing key
     write_file(
@@ -69,6 +73,14 @@ async def setup_cloudmap(client: TelegramClient):
 
 def check_health_cloudmap():
     return all(os.path.exists(path) for path in INCLUDED_CLOUDMAP_PATHS)
+
+
+async def _set_channel_photo(client: TelegramClient):
+    file = await client.upload_file(LOGO_PATH)
+    chat_photo = InputChatUploadedPhoto(file)
+    channel = await client.get_entity(get_cloud_channel_id())
+
+    await client(EditPhotoRequest(channel, chat_photo))
 
 
 async def _create_channel(client: TelegramClient):
