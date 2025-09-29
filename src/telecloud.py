@@ -40,10 +40,11 @@ async def _upload_small_file(client: TelegramClient, cloud_channel, file_path):
 def _split_big_file(file_path, loop: asyncio.AbstractEventLoop, future: asyncio.Future):
     max_split_times = 7
     split_count = 0
-
     part_num = 1
     file_parts = []
     written_size = 0
+
+    size_file = os.path.getsize(file_path)
     for encrypted_chunk in read_file_in_chunk(file_path, is_encrypted=True):
         file_part = file_path + '-' + str(part_num)
         with open(file_part, 'ab') as f:
@@ -56,7 +57,7 @@ def _split_big_file(file_path, loop: asyncio.AbstractEventLoop, future: asyncio.
             file_parts.append(file_part)
             split_count = 0
 
-        elif written_size >= FILE_PART_LENGTH_FOR_LARGE_FILE:
+        elif written_size >= size_file:
             file_parts.append(file_part)
 
     loop.call_soon_threadsafe(future.set_result, file_parts)
@@ -84,13 +85,16 @@ async def _upload_big_file(client: TelegramClient, cloud_channel, file_path):
     file_parts = await file_parts_value_future
     os.remove(file_path)
 
-    upload_info = {}
+    upload_info = {
+        'num': len(file_parts),
+        'parts': {}
+    }
     upload_info_path = file_path + '-0'
 
     tasks = [upload(file) for file in file_parts]
     for task in asyncio.as_completed(tasks):
         msg_id = await task
-        upload_info.update(msg_id)
+        upload_info['parts'].update(msg_id)
 
     await loop.run_in_executor(None, write_file, upload_info_path, json.dumps(upload_info), 'w')
     msg = await upload(upload_info_path)
