@@ -1,16 +1,16 @@
 import os
 
-STORED_CLOUDMAP_PATHS = os.path.join(os.path.expanduser('~'), '.telecloud')
-SESSION_PATH = os.path.join(STORED_CLOUDMAP_PATHS, 'session')
-SALT_PATH = os.path.join(STORED_CLOUDMAP_PATHS, 'salt')
-CLOUDMAP_PATH = os.path.join(STORED_CLOUDMAP_PATHS, 'cloudmap.json')
-KEY_TEST_PATH = os.path.join(STORED_CLOUDMAP_PATHS, 'key_test')
-CLOUD_CHANNEL_ID_PATH = os.path.join(STORED_CLOUDMAP_PATHS, 'cloud_channel_id')
+STORED_CLOUDMAP_PATHS = os.path.join(os.path.expanduser("~"), ".telecloud")
+SESSION_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "session")
+SALT_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "salt")
+CLOUDMAP_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "cloudmap.json")
+KEY_TEST_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "key_test")
+CLOUD_CHANNEL_ID_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "cloud_channel_id")
 INCLUDED_CLOUDMAP_PATHS = (STORED_CLOUDMAP_PATHS, CLOUDMAP_PATH, SALT_PATH)
 
-EXT_IDENTIFIER = '.telecloud'
+EXT_IDENTIFIER = ".telecloud"
 NAMING_FILE_MAX_LENGTH = 255
 NONCE_LENGTH = 12
 TAG_LENGTH = 16
-CHUNK_LENGTH_FOR_LARGE_FILE = 7 * 1024 * 1024 # 7MB
-FILE_PART_LENGTH_FOR_LARGE_FILE = 7 * 7 * 1024 * 1024 # 49MB
+CHUNK_LENGTH_FOR_LARGE_FILE = 7 * 1024 * 1024  # 7MB
+FILE_PART_LENGTH_FOR_LARGE_FILE = 7 * 7 * 1024 * 1024  # 49MB
