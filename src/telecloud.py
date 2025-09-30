@@ -200,7 +200,7 @@ def _prepare_pushed_data(upload_directory):
 async def _encrypt_key_test(symmetric_key):
     write_file(
         KEY_TEST_PATH,
-        "detect if the symmetric key is valid or not, if not then no need to start pulling files",
+        "detect if the symmetric key is valid or not, if not then no need to start pushing/pulling files",
         mode="w",
     )
 

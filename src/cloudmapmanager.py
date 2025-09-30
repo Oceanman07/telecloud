@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import io
 import time
 from getpass import getpass
 
@@ -10,11 +11,10 @@ from telethon.tl.functions.channels import CreateChannelRequest, EditPhotoReques
 from telethon.tl.types import InputChatUploadedPhoto
 
 from .aes import generate_key
+from .logo import LOGO
 from .protector import encrypt_file
-
 from .utils import read_file, write_file
 from .elements import (
-    LOGO_PATH,
     SALT_PATH,
     KEY_TEST_PATH,
     CLOUDMAP_PATH,
@@ -26,32 +26,11 @@ from .elements import (
 
 
 async def setup_cloudmap(client: TelegramClient):
-    # this is the very first step -> write_file doesnt need to by async since the blocking doesn affect at all
+    # this is the very first step -> write_file doesnt need to be async since the blocking doesnt affect at all
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
 
     # encrypted files before uploading or decrypting will be stored here
     os.makedirs(STORED_PREPARED_FILE_PATHS, exist_ok=True)
-
-    # cloudmap stores file info -> msg_id, checksum, file_path, time
-    cloudmap = {}
-    write_file(CLOUDMAP_PATH, json.dumps(cloudmap), mode="w")
-
-    # salt + password to generate key
-    salt = os.urandom(32)
-    write_file(SALT_PATH, base64.b64encode(salt).decode(), mode="w")
-
-    # files will be uploaded in this channel
-    if not os.path.exists(CLOUD_CHANNEL_ID_PATH):
-        channel_id = await _create_channel(client)
-        write_file(CLOUD_CHANNEL_ID_PATH, str(channel_id), mode="w")
-        await _set_channel_photo(client)
-
-    # a string for testing key
-    write_file(
-        KEY_TEST_PATH,
-        "detect if the symmetric key is valid or not, if not then no need to start pulling files",
-        mode="w",
-    )
 
     # setup password
     print(
@@ -60,19 +39,39 @@ async def setup_cloudmap(client: TelegramClient):
     print(
         f"Remember! {Style.BRIGHT}One password{Style.RESET_ALL} to rule them all, {Style.BRIGHT}One Password{Style.RESET_ALL} to find them, {Style.BRIGHT}One Password{Style.RESET_ALL} to bring them all, and in case you forget you might {Style.BRIGHT}lose{Style.RESET_ALL} them all. So, choose wisely!"
     )
-    password = input(">_ ")
-    repeated = getpass("Confirm:\n>_ ")
-
+    password = input(">: ")
+    repeated = getpass("Confirm:\n>: ")
     if password != repeated:
         print(
             f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Password does not match{Style.RESET_ALL}"
         )
-        os.remove(SALT_PATH)
-        os.remove(KEY_TEST_PATH)
         exit()
 
+    # salt + password to generate key
+    salt = os.urandom(32)
+    write_file(SALT_PATH, base64.b64encode(salt).decode(), mode="w")
+
+    # a string for testing key
+    write_file(
+        KEY_TEST_PATH,
+        "detect if the symmetric key is valid or not, if not then no need to start pushing/pulling files",
+        mode="w",
+    )
     symmetric_key = generate_key(password, salt)
     encrypt_file(symmetric_key, KEY_TEST_PATH, KEY_TEST_PATH, None, None)
+
+    # cloudmap stores file info -> msg_id, checksum, file_path, file_size, time
+    cloudmap = {}
+    write_file(CLOUDMAP_PATH, json.dumps(cloudmap), mode="w")
+
+    # create cloud channel to store files
+    if not os.path.exists(CLOUD_CHANNEL_ID_PATH):
+        channel_id = await _create_channel(client)
+        print(
+            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Style.RESET_ALL} Created cloud channel with ID:{channel_id}"
+        )
+        write_file(CLOUD_CHANNEL_ID_PATH, str(channel_id), mode="w")
+        await _set_channel_photo(client)
 
 
 def check_health_cloudmap():
@@ -80,8 +79,12 @@ def check_health_cloudmap():
 
 
 async def _set_channel_photo(client: TelegramClient):
-    file = await client.upload_file(LOGO_PATH)
-    chat_photo = InputChatUploadedPhoto(file)
+    # this is also the very first step -> decoding doesnt need to be async since the blocking doesnt affect at all
+    file_bytes = io.BytesIO(base64.b64decode(LOGO))
+    file_bytes.name = "CloudLogoAvatar.png"
+
+    uploaded_file = await client.upload_file(file_bytes)
+    chat_photo = InputChatUploadedPhoto(uploaded_file)
     channel = await client.get_entity(get_cloud_channel_id())
 
     await client(EditPhotoRequest(channel, chat_photo))
