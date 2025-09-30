@@ -12,6 +12,7 @@ from .elements import (
     KEY_TEST_PATH,
     FILE_PART_LENGTH_FOR_LARGE_FILE,
     NAMING_FILE_MAX_LENGTH,
+    STORED_PREPARED_FILE_PATHS,
 )
 from .utils import (
     get_checksum,
@@ -42,15 +43,18 @@ async def _upload_small_file(client: TelegramClient, cloud_channel, file_path):
 
 
 def _split_big_file(file_path, loop: asyncio.AbstractEventLoop, future: asyncio.Future):
+    file_parts = []
     max_split_times = 7
     split_count = 0
     part_num = 1
-    file_parts = []
     written_size = 0
 
     size_file = os.path.getsize(file_path)
     for encrypted_chunk in read_file_in_chunk(file_path, is_encrypted=True):
-        file_part = str(part_num) + "_" + file_path
+        file_part = os.path.join(
+            STORED_PREPARED_FILE_PATHS,
+            str(part_num) + "_" + os.path.basename(file_path),
+        )
         with open(file_part, "ab") as f:
             f.write(encrypted_chunk)
             written_size += len(encrypted_chunk)
@@ -95,14 +99,15 @@ async def _upload_big_file(client: TelegramClient, cloud_channel, file_path):
     os.remove(file_path)
 
     upload_info = {}
-    upload_info_path = "0_" + file_path
-
     tasks = [upload(file) for file in file_parts]
     for task in asyncio.as_completed(tasks):
         msg_id = await task
         upload_info.update(msg_id)
 
     # upload_info just contains msg_id of file_parts then no need to encrypt
+    upload_info_path = os.path.join(
+        STORED_PREPARED_FILE_PATHS, "0_" + os.path.basename(file_path)
+    )
     await loop.run_in_executor(
         None, write_file, upload_info_path, json.dumps(upload_info), "w"
     )
@@ -129,7 +134,9 @@ async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, fil
         # checksum is now the name of encrypted file -> prevent long file name from reaching over 255 chars
         # adding random number to prevent checksum name conflict > two different files could have the same data
         checksum = await checksum_value_future
-        encrypted_file_path = get_random_number() + "_" + checksum
+        encrypted_file_path = os.path.join(
+            STORED_PREPARED_FILE_PATHS, get_random_number() + "_" + checksum
+        )
 
         # encrypt file before uploading to cloud
         encryption_process_future = loop.create_future()

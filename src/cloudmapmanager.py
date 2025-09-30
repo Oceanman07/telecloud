@@ -21,12 +21,16 @@ from .elements import (
     STORED_CLOUDMAP_PATHS,
     CLOUD_CHANNEL_ID_PATH,
     INCLUDED_CLOUDMAP_PATHS,
+    STORED_PREPARED_FILE_PATHS,
 )
 
 
 async def setup_cloudmap(client: TelegramClient):
     # this is the very first step -> write_file doesnt need to by async since the blocking doesn affect at all
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
+
+    # encrypted files before uploading or decrypting will be stored here
+    os.makedirs(STORED_PREPARED_FILE_PATHS, exist_ok=True)
 
     # cloudmap stores file info -> msg_id, checksum, file_path, time
     cloudmap = {}
