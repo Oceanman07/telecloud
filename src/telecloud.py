@@ -251,7 +251,9 @@ async def push_data(client: TelegramClient, symmetric_key, upload_directory):
 
 async def _download_small_file(client: TelegramClient, cloud_channel, msg_id):
     msg = await client.get_messages(cloud_channel, ids=msg_id)
-    file_from_cloud = msg.document.attributes[0].file_name
+    file_from_cloud = os.path.join(
+        STORED_PREPARED_FILE_PATHS, msg.document.attributes[0].file_name
+    )
     await client.download_file(msg.document, file=file_from_cloud, part_size_kb=512)
 
     return file_from_cloud
@@ -260,12 +262,21 @@ async def _download_small_file(client: TelegramClient, cloud_channel, msg_id):
 def _merge_file_parts(
     file_parts, loop: asyncio.AbstractEventLoop, future: asyncio.Future
 ):
-    any_part_file = list(file_parts.keys())[0]
-    merged_file = any_part_file[any_part_file.index("_") + 1 :]
+    any_file_part_name = os.path.basename(file_parts[0])
+    any_file_part_name_without_num = any_file_part_name[
+        any_file_part_name.index("_") + 1 :
+    ]
+    merged_file = os.path.join(
+        STORED_PREPARED_FILE_PATHS,
+        any_file_part_name_without_num,
+    )
 
     with open(merged_file, "wb") as f:
         for i in range(1, len(file_parts) + 1):
-            file_part = str(i) + "_" + merged_file
+            file_part = os.path.join(
+                STORED_PREPARED_FILE_PATHS,
+                str(i) + "_" + any_file_part_name_without_num,
+            )
             for encrypted_chunk in read_file_in_chunk(file_part, is_encrypted=True):
                 f.write(encrypted_chunk)
             os.remove(file_part)
@@ -279,7 +290,9 @@ async def _download_big_file(client: TelegramClient, cloud_channel, msg_id):
     async def download(id):
         async with semaphore:
             msg = await client.get_messages(cloud_channel, ids=id)
-            file_from_cloud = msg.document.attributes[0].file_name
+            file_from_cloud = os.path.join(
+                STORED_PREPARED_FILE_PATHS, msg.document.attributes[0].file_name
+            )
             await client.download_file(
                 msg.document, file=file_from_cloud, part_size_kb=512
             )
@@ -293,12 +306,15 @@ async def _download_big_file(client: TelegramClient, cloud_channel, msg_id):
     os.remove(file_info_path)
 
     tasks = [download(file_parts[file_part]) for file_part in file_parts]
+    downloaded_file_parts = []
     for task in asyncio.as_completed(tasks):
-        await task
+        downloaded_file_part = await task
+        downloaded_file_parts.append(downloaded_file_part)
 
     merged_file_value_future = loop.create_future()
     merge_file_parts_thread = threading.Thread(
-        target=_merge_file_parts, args=(file_parts, loop, merged_file_value_future)
+        target=_merge_file_parts,
+        args=(downloaded_file_parts, loop, merged_file_value_future),
     )
     merge_file_parts_thread.start()
 
@@ -329,12 +345,10 @@ async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, f
         )
         file_decryption_thread.start()
 
-        result = await future
-        result["file_path"] = file["saved_path"]
-
+        await future
         os.remove(file_from_cloud)
 
-        return result
+        return file["saved_path"]
 
 
 def _prepare_pulled_data(saved_directory):
@@ -406,5 +420,5 @@ async def pull_data(client: TelegramClient, symmetric_key, saved_directory):
 
         count += 1
         print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path']}"
+            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result}"
         )
