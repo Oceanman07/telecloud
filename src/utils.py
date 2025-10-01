@@ -45,4 +45,5 @@ def get_checksum(
     if not is_holder:
         return checksum.hexdigest()
 
-    loop.call_soon_threadsafe(future.set_result, checksum.hexdigest())
+    if not future.done():
+        loop.call_soon_threadsafe(future.set_result, checksum.hexdigest())

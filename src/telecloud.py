@@ -68,7 +68,8 @@ def _split_big_file(file_path, loop: asyncio.AbstractEventLoop, future: asyncio.
         elif written_size >= size_file:
             file_parts.append(file_part)
 
-    loop.call_soon_threadsafe(future.set_result, file_parts)
+    if not future.done():
+        loop.call_soon_threadsafe(future.set_result, file_parts)
 
 
 async def _upload_big_file(client: TelegramClient, cloud_channel, file_path):
@@ -239,7 +240,11 @@ async def push_data(client: TelegramClient, symmetric_key, upload_directory):
 
     count = 0
     for task in asyncio.as_completed(tasks):
-        result = await task
+        try:
+            result = await task
+        except asyncio.exceptions.CancelledError:
+            return
+
         new_cloudmap[result["msg_id"]] = result["attrib"]
         await loop.run_in_executor(None, update_cloudmap, new_cloudmap)
 
@@ -281,7 +286,8 @@ def _merge_file_parts(
                 f.write(encrypted_chunk)
             os.remove(file_part)
 
-    loop.call_soon_threadsafe(future.set_result, merged_file)
+    if not future.done():
+        loop.call_soon_threadsafe(future.set_result, merged_file)
 
 
 async def _download_big_file(client: TelegramClient, cloud_channel, msg_id):

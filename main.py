@@ -40,11 +40,17 @@ async def main():
         salt = get_salt_from_cloudmap()
         symmetric_key = aes.generate_key(args.password, salt)
 
-        if args.push:
-            await push_data(client, symmetric_key, args.directory)
+        try:
+            if args.push:
+                await push_data(client, symmetric_key, args.directory)
 
-        elif args.pull:
-            await pull_data(client, symmetric_key, args.directory)
+            elif args.pull:
+                await pull_data(client, symmetric_key, args.directory)
+
+        except KeyboardInterrupt:
+            loop = asyncio.get_running_loop()
+            for coro in asyncio.all_tasks(loop):
+                coro.cancel()
 
 
 if __name__ == "__main__":

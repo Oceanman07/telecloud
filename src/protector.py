@@ -20,8 +20,9 @@ def encrypt_file(
                 f.write(encrypted_chunk)
 
     if loop and future:
-        # just await to finish the encryption process then no need to hold data
-        loop.call_soon_threadsafe(future.set_result, None)
+        if not future.done():
+            # just await to finish the encryption process then no need to hold data
+            loop.call_soon_threadsafe(future.set_result, None)
 
 
 def decrypt_file(
@@ -34,28 +35,14 @@ def decrypt_file(
         <= NONCE_LENGTH + TAG_LENGTH + CHUNK_LENGTH_FOR_LARGE_FILE
     ):
         encrypted_data = read_file(src_path)
-        try:
-            original_data = aes.decrypt(key, encrypted_data)
-        except ValueError:
-            loop.call_soon_threadsafe(
-                future.set_result, {"success": False, "error": "Invalid password"}
-            )
-            return
-
+        original_data = aes.decrypt(key, encrypted_data)
         write_file(dns_path, original_data)
 
     else:
         with open(dns_path, "wb") as f:
             for encrypted_chunk in read_file_in_chunk(src_path, is_encrypted=True):
-                try:
-                    original_chunk = aes.decrypt(key, encrypted_chunk)
-                except ValueError:
-                    loop.call_soon_threadsafe(
-                        future.set_result,
-                        {"success": False, "error": "Invalid password"},
-                    )
-                    return
-
+                original_chunk = aes.decrypt(key, encrypted_chunk)
                 f.write(original_chunk)
 
-    loop.call_soon_threadsafe(future.set_result, {"success": True})
+    if not future.done():
+        loop.call_soon_threadsafe(future.set_result, {"success": True})
