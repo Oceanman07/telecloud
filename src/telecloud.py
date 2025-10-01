@@ -155,13 +155,18 @@ async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, fil
 
         await encryption_process_future
 
-        file_size = os.path.getsize(file_path)
-        if file_size < FILE_PART_LENGTH_FOR_LARGE_FILE:
-            msg_id = await _upload_small_file(
-                client, cloud_channel, encrypted_file_path
-            )
-        else:
-            msg_id = await _upload_big_file(client, cloud_channel, encrypted_file_path)
+        try:
+            file_size = os.path.getsize(file_path)
+            if file_size < FILE_PART_LENGTH_FOR_LARGE_FILE:
+                msg_id = await _upload_small_file(
+                    client, cloud_channel, encrypted_file_path
+                )
+            else:
+                msg_id = await _upload_big_file(
+                    client, cloud_channel, encrypted_file_path
+                )
+        except ConnectionError:
+            return
 
         return {
             "msg_id": msg_id,
@@ -218,7 +223,6 @@ async def _encrypt_key_test(symmetric_key):
 
 
 async def push_data(client: TelegramClient, symmetric_key, upload_directory):
-    # decrypt key_test first to ensure the key (password) remains the same
     key_test_result = await _decrypt_key_test(symmetric_key)
     if not key_test_result["success"]:
         print(
@@ -243,6 +247,8 @@ async def push_data(client: TelegramClient, symmetric_key, upload_directory):
         try:
             result = await task
         except asyncio.exceptions.CancelledError:
+            # This exception raises when pressing Ctrl+C to stop the program
+            # which cancels all the coros -> return to stop immediately (no need to iterate the rest)
             return
 
         new_cloudmap[result["msg_id"]] = result["attrib"]
@@ -333,14 +339,17 @@ async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, f
             f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulling{Style.RESET_ALL} {file['saved_path']}"
         )
 
-        if file["file_size"] < FILE_PART_LENGTH_FOR_LARGE_FILE:
-            file_from_cloud = await _download_small_file(
-                client, cloud_channel, int(file["msg_id"])
-            )
-        else:
-            file_from_cloud = await _download_big_file(
-                client, cloud_channel, int(file["msg_id"])
-            )
+        try:
+            if file["file_size"] < FILE_PART_LENGTH_FOR_LARGE_FILE:
+                file_from_cloud = await _download_small_file(
+                    client, cloud_channel, int(file["msg_id"])
+                )
+            else:
+                file_from_cloud = await _download_big_file(
+                    client, cloud_channel, int(file["msg_id"])
+                )
+        except ConnectionError:
+            return
 
         loop = asyncio.get_running_loop()
         future = loop.create_future()
@@ -422,7 +431,12 @@ async def pull_data(client: TelegramClient, symmetric_key, saved_directory):
 
     count = 0
     for task in asyncio.as_completed(tasks):
-        result = await task
+        try:
+            result = await task
+        except asyncio.exceptions.CancelledError:
+            # This exception raises when pressing Ctrl+C to stop the program
+            # which cancels all the coros -> return to stop immediately (no need to iterate the rest)
+            return
 
         count += 1
         print(
