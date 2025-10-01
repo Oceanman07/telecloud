@@ -127,3 +127,9 @@ def get_existed_file_names_on_cloudmap():
 def get_existed_checksums():
     cloudmap = get_cloudmap()
     return [cloudmap[msg_id]["checksum"] for msg_id in cloudmap]
+
+
+def clean_prepared_data():
+    for path in os.listdir(STORED_PREPARED_FILE_PATHS):
+        file_path = os.path.join(STORED_PREPARED_FILE_PATHS, path)
+        os.remove(file_path)

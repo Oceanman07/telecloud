@@ -1,5 +1,6 @@
 import os
 import asyncio
+import time
 
 from dotenv import load_dotenv
 from telethon import TelegramClient
@@ -9,10 +10,11 @@ from src import aes
 from src.telecloud import push_data, pull_data
 from src.elements import SESSION_PATH
 from src.cloudmapmanager import (
+    setup_cloudmap,
     check_health_cloudmap,
     get_cloud_channel_id,
-    setup_cloudmap,
     get_salt_from_cloudmap,
+    clean_prepared_data,
 )
 
 load_dotenv()
@@ -34,13 +36,13 @@ async def main():
         # os.remove("/Users/supertempclient/.telecloud/cloudmap.json")
         # return
 
-        if not check_health_cloudmap():
-            await setup_cloudmap(client)
-
-        salt = get_salt_from_cloudmap()
-        symmetric_key = aes.generate_key(args.password, salt)
-
         try:
+            if not check_health_cloudmap():
+                await setup_cloudmap(client)
+
+            salt = get_salt_from_cloudmap()
+            symmetric_key = aes.generate_key(args.password, salt)
+
             if args.push:
                 await push_data(client, symmetric_key, args.directory)
 
@@ -51,6 +53,9 @@ async def main():
             loop = asyncio.get_running_loop()
             for coro in asyncio.all_tasks(loop):
                 coro.cancel()
+
+    time.sleep(0.5)
+    clean_prepared_data()
 
 
 if __name__ == "__main__":
