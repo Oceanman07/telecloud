@@ -227,6 +227,7 @@ async def push_data(client: TelegramClient, symmetric_key, upload_directory):
 
     await _encrypt_key_test(symmetric_key)
 
+    loop = asyncio.get_running_loop()
     new_cloudmap = get_cloudmap()
 
     cloud_channel = await client.get_entity(get_cloud_channel_id())
@@ -240,13 +241,12 @@ async def push_data(client: TelegramClient, symmetric_key, upload_directory):
     for task in asyncio.as_completed(tasks):
         result = await task
         new_cloudmap[result["msg_id"]] = result["attrib"]
+        await loop.run_in_executor(None, update_cloudmap, new_cloudmap)
 
         count += 1
         print(
             f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}"
         )
-
-    update_cloudmap(new_cloudmap)
 
 
 async def _download_small_file(client: TelegramClient, cloud_channel, msg_id):
