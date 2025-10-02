@@ -14,7 +14,7 @@ from .aes import generate_key
 from .logo import LOGO
 from .protector import encrypt_file
 from .utils import read_file, write_file
-from .elements import (
+from .constants import (
     SALT_PATH,
     KEY_TEST_PATH,
     CLOUDMAP_PATH,
@@ -26,7 +26,8 @@ from .elements import (
 
 
 async def setup_cloudmap(client: TelegramClient):
-    # this is the very first step -> write_file doesnt need to be async since the blocking doesnt affect at all
+    # This step is the very first step
+    # -> write_file doesnt need to be async since the blocking doesnt affect at all
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
 
     # encrypted files before uploading or decrypting will be stored here
@@ -79,7 +80,8 @@ def check_health_cloudmap():
 
 
 async def _set_channel_photo(client: TelegramClient):
-    # this is also the very first step -> decoding doesnt need to be async since the blocking doesnt affect at all
+    # This is also the very first step
+    # -> decoding doesnt need to be async since the blocking doesnt affect at all
     file_bytes = io.BytesIO(base64.b64decode(LOGO))
     file_bytes.name = "CloudLogoAvatar.png"
 
@@ -120,13 +122,24 @@ def get_existed_file_paths_on_cloudmap():
 
 
 def get_existed_file_names_on_cloudmap():
+    """
+    Get all the file names of pushed files for naming pulled files
+    it cannot use `set` to deduplicate for smaller size
+    since a single file has multiple uploads means it has changed a lot
+    so when pulling we will have all the changed version of that file with file name = file_name + msg_id + time
+    """
     cloudmap = get_cloudmap()
     return [os.path.basename(cloudmap[msg_id]["file_path"]) for msg_id in cloudmap]
 
 
 def get_existed_checksums():
+    """
+    Get all the checksums of pushed files for checking if a file is changed or not
+    if it doesnt change then no need to push again
+    a lot of files may have the same content so use `set` to deduplicate for faster checking
+    """
     cloudmap = get_cloudmap()
-    return [cloudmap[msg_id]["checksum"] for msg_id in cloudmap]
+    return set([cloudmap[msg_id]["checksum"] for msg_id in cloudmap])
 
 
 def clean_prepared_data():

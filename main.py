@@ -6,9 +6,10 @@ from dotenv import load_dotenv
 from telethon import TelegramClient
 
 from src.parser import parse_args
-from src import aes
-from src.telecloud import push_data, pull_data
-from src.elements import SESSION_PATH
+from src.aes import generate_key
+from src.telecloud.push import push_data
+from src.telecloud.pull import pull_data
+from src.constants import SESSION_PATH
 from src.cloudmapmanager import (
     setup_cloudmap,
     check_health_cloudmap,
@@ -41,7 +42,7 @@ async def main():
                 await setup_cloudmap(client)
 
             salt = get_salt_from_cloudmap()
-            symmetric_key = aes.generate_key(args.password, salt)
+            symmetric_key = generate_key(args.password, salt)
 
             if args.push:
                 await push_data(client, symmetric_key, args.directory)

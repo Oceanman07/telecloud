@@ -3,7 +3,7 @@ import hashlib
 import random
 from typing import Optional
 
-from .elements import NONCE_LENGTH, TAG_LENGTH, CHUNK_LENGTH_FOR_LARGE_FILE
+from .constants import NONCE_LENGTH, TAG_LENGTH, CHUNK_LENGTH_FOR_LARGE_FILE
 
 
 def get_random_number():

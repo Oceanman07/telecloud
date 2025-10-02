@@ -3,7 +3,7 @@ import asyncio
 
 from . import aes
 from .utils import read_file, read_file_in_chunk, write_file
-from .elements import NONCE_LENGTH, TAG_LENGTH, CHUNK_LENGTH_FOR_LARGE_FILE
+from .constants import NONCE_LENGTH, TAG_LENGTH, CHUNK_LENGTH_FOR_LARGE_FILE
 
 
 def encrypt_file(
