@@ -72,13 +72,17 @@ async def _upload_big_file(client: TelegramClient, cloud_channel, file_path):
 
     async def upload(file_part):
         async with semaphore:
-            file = await client.upload_file(
-                file_part, file_name=file_part, part_size_kb=512
-            )
-            msg = await client.send_file(cloud_channel, file)
-            os.remove(file_part)
+            try:
+                file = await client.upload_file(
+                    file_part, file_name=file_part, part_size_kb=512
+                )
+                msg = await client.send_file(cloud_channel, file)
+                os.remove(file_part)
 
-            return {file_part: msg.id}
+                return {file_part: msg.id}
+
+            except ConnectionError:
+                return
 
     loop = asyncio.get_running_loop()
 
@@ -219,15 +223,15 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
                 f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - File not found"
             )
             return
-
-        result = await _upload_file(client, cloud_channel, symmetric_key, file_path)
-
-        new_cloudmap[result["msg_id"]] = result["attrib"]
-        await loop.run_in_executor(None, update_cloudmap, new_cloudmap)
-
-        print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL}   {result['attrib']['file_path']}"
-        )
+        try:
+            result = await _upload_file(client, cloud_channel, symmetric_key, file_path)
+            new_cloudmap[result["msg_id"]] = result["attrib"]
+            await loop.run_in_executor(None, update_cloudmap, new_cloudmap)
+            print(
+                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL}   {result['attrib']['file_path']}"
+            )
+        except asyncio.exceptions.CancelledError:
+            return
 
     else:
         dir_path = os.path.abspath(config.directory)

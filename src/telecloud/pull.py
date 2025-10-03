@@ -67,14 +67,18 @@ async def _download_big_file(client: TelegramClient, cloud_channel, msg_id):
 
     async def download(id):
         async with semaphore:
-            msg = await client.get_messages(cloud_channel, ids=id)
-            file_from_cloud = os.path.join(
-                STORED_PREPARED_FILE_PATHS, msg.document.attributes[0].file_name
-            )
-            await client.download_file(
-                msg.document, file=file_from_cloud, part_size_kb=512
-            )
-            return file_from_cloud
+            try:
+                msg = await client.get_messages(cloud_channel, ids=id)
+                file_from_cloud = os.path.join(
+                    STORED_PREPARED_FILE_PATHS, msg.document.attributes[0].file_name
+                )
+                await client.download_file(
+                    msg.document, file=file_from_cloud, part_size_kb=512
+                )
+                return file_from_cloud
+
+            except ConnectionError:
+                return
 
     loop = asyncio.get_running_loop()
 
@@ -184,14 +188,16 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
                 file["msg_id"] = msg_id
                 file["file_size"] = reversed_cloudmap[msg_id]["file_size"]
                 file["saved_path"] = os.path.abspath(file_name)
-
-                result = await _download_file(
-                    client, cloud_channel, symmetric_key, file
-                )
-                print(
-                    f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL}   {result}"
-                )
-                return
+                try:
+                    result = await _download_file(
+                        client, cloud_channel, symmetric_key, file
+                    )
+                    print(
+                        f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL}   {result}"
+                    )
+                    return
+                except asyncio.exceptions.CancelledError:
+                    return
         print(
             f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - File not found"
         )
