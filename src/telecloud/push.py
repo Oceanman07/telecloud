@@ -8,6 +8,7 @@ from colorama import Style, Fore
 from telethon import TelegramClient
 
 from ._utils import encrypt_key_test, decrypt_key_test
+from ..config import Config
 from ..protector import encrypt_file
 from ..constants import FILE_PART_LENGTH_FOR_LARGE_FILE, STORED_PREPARED_FILE_PATHS
 from ..utils import (
@@ -173,12 +174,12 @@ async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, fil
         }
 
 
-def _prepare_pushed_data(upload_directory):
+def _prepare_pushed_data(config: Config):
     existed_file_paths = get_existed_file_paths_on_cloudmap()
     checksums = get_existed_checksums()
 
     file_paths = []
-    for dir_path, _, file_names in os.walk(upload_directory):
+    for dir_path, _, file_names in os.walk(config.directory):
         for file_name in file_names:
             file_path = os.path.abspath(os.path.join(dir_path, file_name))
 
@@ -197,7 +198,7 @@ def _prepare_pushed_data(upload_directory):
     return file_paths
 
 
-async def push_data(client: TelegramClient, symmetric_key, upload_directory):
+async def push_data(client: TelegramClient, symmetric_key, config: Config):
     key_test_result = await decrypt_key_test(symmetric_key)
     if not key_test_result["success"]:
         print(
@@ -209,27 +210,33 @@ async def push_data(client: TelegramClient, symmetric_key, upload_directory):
 
     loop = asyncio.get_running_loop()
     new_cloudmap = get_cloudmap()
-
     cloud_channel = await client.get_entity(get_cloud_channel_id())
-    prepared_data = _prepare_pushed_data(upload_directory)
-    tasks = [
-        _upload_file(client, cloud_channel, symmetric_key, file_path)
-        for file_path in prepared_data
-    ]
 
-    count = 0
-    for task in asyncio.as_completed(tasks):
-        try:
-            result = await task
-        except asyncio.exceptions.CancelledError:
-            # This exception raises when pressing Ctrl+C to stop the program
-            # which cancels all the coros -> return to stop immediately (no need to iterate the rest)
-            return
-
+    if config.file:
+        file_path = os.path.abspath(config.file)
+        result = await _upload_file(client, cloud_channel, symmetric_key, file_path)
         new_cloudmap[result["msg_id"]] = result["attrib"]
         await loop.run_in_executor(None, update_cloudmap, new_cloudmap)
+    else:
+        prepared_data = _prepare_pushed_data(config)
+        tasks = [
+            _upload_file(client, cloud_channel, symmetric_key, file_path)
+            for file_path in prepared_data
+        ]
 
-        count += 1
-        print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}"
-        )
+        count = 0
+        for task in asyncio.as_completed(tasks):
+            try:
+                result = await task
+            except asyncio.exceptions.CancelledError:
+                # This exception raises when pressing Ctrl+C to stop the program
+                # which cancels all the coros -> return to stop immediately (no need to iterate the rest)
+                return
+
+            new_cloudmap[result["msg_id"]] = result["attrib"]
+            await loop.run_in_executor(None, update_cloudmap, new_cloudmap)
+
+            count += 1
+            print(
+                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}"
+            )

@@ -5,7 +5,7 @@ import time
 from dotenv import load_dotenv
 from telethon import TelegramClient
 
-from src.parser import parse_args
+from src.parser import load_config
 from src.aes import generate_key
 from src.telecloud.push import push_data
 from src.telecloud.pull import pull_data
@@ -30,7 +30,7 @@ async def delete_msgs(client: TelegramClient):
 
 
 async def main():
-    args = parse_args()
+    config = load_config()
 
     async with TelegramClient(SESSION_PATH, api_id=api_id, api_hash=api_hash) as client:
         # await delete_msgs(client)
@@ -42,13 +42,13 @@ async def main():
                 await setup_cloudmap(client)
 
             salt = get_salt_from_cloudmap()
-            symmetric_key = generate_key(args.password, salt)
+            symmetric_key = generate_key(config.password, salt)
 
-            if args.push:
-                await push_data(client, symmetric_key, args.directory)
+            if config.action == "push":
+                await push_data(client, symmetric_key, config)
 
-            elif args.pull:
-                await pull_data(client, symmetric_key, args.directory)
+            elif config.action == "pull":
+                await pull_data(client, symmetric_key, config)
 
         except KeyboardInterrupt:
             loop = asyncio.get_running_loop()

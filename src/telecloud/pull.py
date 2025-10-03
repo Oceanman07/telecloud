@@ -8,6 +8,7 @@ from colorama import Style, Fore
 from telethon import TelegramClient
 
 from ._utils import encrypt_key_test, decrypt_key_test
+from ..config import Config
 from ..protector import decrypt_file
 from ..utils import read_file, read_file_in_chunk
 from ..cloudmapmanager import (
@@ -131,7 +132,7 @@ async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, f
         return file["saved_path"]
 
 
-def _prepare_pulled_data(saved_directory):
+def _prepare_pulled_data(config: Config):
     cloudmap = get_cloudmap()
     existed_file_names = get_existed_file_names_on_cloudmap()
 
@@ -153,7 +154,7 @@ def _prepare_pulled_data(saved_directory):
             else:
                 file_name = new_file_name
 
-        saved_path = os.path.abspath(os.path.join(saved_directory, file_name))
+        saved_path = os.path.abspath(os.path.join(config.directory, file_name))
         saved_paths.append(
             {"msg_id": msg_id, "file_size": file_size, "saved_path": saved_path}
         )
@@ -161,7 +162,7 @@ def _prepare_pulled_data(saved_directory):
     return saved_paths
 
 
-async def pull_data(client: TelegramClient, symmetric_key, saved_directory):
+async def pull_data(client: TelegramClient, symmetric_key, config: Config):
     key_test_result = await decrypt_key_test(symmetric_key)
     if not key_test_result["success"]:
         print(
@@ -172,7 +173,7 @@ async def pull_data(client: TelegramClient, symmetric_key, saved_directory):
     await encrypt_key_test(symmetric_key)
 
     cloud_channel = await client.get_entity(get_cloud_channel_id())
-    prepared_data = _prepare_pulled_data(saved_directory)
+    prepared_data = _prepare_pulled_data(config)
     tasks = [
         _download_file(client, cloud_channel, symmetric_key, file)
         for file in prepared_data

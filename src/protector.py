@@ -35,13 +35,28 @@ def decrypt_file(
         <= NONCE_LENGTH + TAG_LENGTH + CHUNK_LENGTH_FOR_LARGE_FILE
     ):
         encrypted_data = read_file(src_path)
-        original_data = aes.decrypt(key, encrypted_data)
+        try:
+            original_data = aes.decrypt(key, encrypted_data)
+        except ValueError:
+            loop.call_soon_threadsafe(
+                future.set_result, {"success": False, "error": "Invalid password"}
+            )
+            return
+
         write_file(dns_path, original_data)
 
     else:
         with open(dns_path, "wb") as f:
             for encrypted_chunk in read_file_in_chunk(src_path, is_encrypted=True):
-                original_chunk = aes.decrypt(key, encrypted_chunk)
+                try:
+                    original_chunk = aes.decrypt(key, encrypted_chunk)
+                except ValueError:
+                    loop.call_soon_threadsafe(
+                        future.set_result,
+                        {"success": False, "error": "Invalid password"},
+                    )
+                    return
+
                 f.write(original_chunk)
 
     if not future.done():
