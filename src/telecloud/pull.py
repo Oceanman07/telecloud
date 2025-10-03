@@ -132,7 +132,7 @@ async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, f
         return file["saved_path"]
 
 
-def _prepare_pulled_data(config: Config):
+def _prepare_pulled_data(saved_directory):
     cloudmap = get_cloudmap()
     existed_file_names = get_existed_file_names_on_cloudmap()
 
@@ -154,7 +154,7 @@ def _prepare_pulled_data(config: Config):
             else:
                 file_name = new_file_name
 
-        saved_path = os.path.abspath(os.path.join(config.directory, file_name))
+        saved_path = os.path.join(saved_directory, file_name)
         saved_paths.append(
             {"msg_id": msg_id, "file_size": file_size, "saved_path": saved_path}
         )
@@ -173,22 +173,49 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
     await encrypt_key_test(symmetric_key)
 
     cloud_channel = await client.get_entity(get_cloud_channel_id())
-    prepared_data = _prepare_pulled_data(config)
-    tasks = [
-        _download_file(client, cloud_channel, symmetric_key, file)
-        for file in prepared_data
-    ]
 
-    count = 0
-    for task in asyncio.as_completed(tasks):
-        try:
-            result = await task
-        except asyncio.exceptions.CancelledError:
-            # This exception raises when pressing Ctrl+C to stop the program
-            # which cancels all the coros -> return to stop immediately (no need to iterate the rest)
-            return
+    if config.file:
+        file = {}
+        # get the lastest file
+        reversed_cloudmap = dict(reversed(get_cloudmap().items()))
+        for msg_id in reversed_cloudmap:
+            file_name = os.path.basename(reversed_cloudmap[msg_id]["file_path"])
+            if file_name == config.file:
+                file["msg_id"] = msg_id
+                file["file_size"] = reversed_cloudmap[msg_id]["file_size"]
+                file["saved_path"] = os.path.abspath(file_name)
 
-        count += 1
+                result = await _download_file(
+                    client, cloud_channel, symmetric_key, file
+                )
+                print(
+                    f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL}   {result}"
+                )
+                return
         print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result}"
+            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - File not found"
         )
+
+    else:
+        saved_dirpath = os.path.abspath(config.directory)
+        os.makedirs(saved_dirpath, exist_ok=True)
+
+        prepared_data = _prepare_pulled_data(saved_dirpath)
+        tasks = [
+            _download_file(client, cloud_channel, symmetric_key, file)
+            for file in prepared_data
+        ]
+
+        count = 0
+        for task in asyncio.as_completed(tasks):
+            try:
+                result = await task
+            except asyncio.exceptions.CancelledError:
+                # This exception raises when pressing Ctrl+C to stop the program
+                # which cancels all the coros -> return to stop immediately (no need to iterate the rest)
+                return
+
+            count += 1
+            print(
+                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result}"
+            )
