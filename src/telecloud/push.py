@@ -174,14 +174,14 @@ async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, fil
         }
 
 
-def _prepare_pushed_data(config: Config):
+def _prepare_pushed_data(root_directory):
     existed_file_paths = get_existed_file_paths_on_cloudmap()
     checksums = get_existed_checksums()
 
     file_paths = []
-    for dir_path, _, file_names in os.walk(config.directory):
+    for dir_path, _, file_names in os.walk(root_directory):
         for file_name in file_names:
-            file_path = os.path.abspath(os.path.join(dir_path, file_name))
+            file_path = os.path.join(dir_path, file_name)
 
             if file_path not in existed_file_paths:
                 file_paths.append(file_path)
@@ -214,11 +214,30 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
 
     if config.file:
         file_path = os.path.abspath(config.file)
+        if not os.path.exists(file_path):
+            print(
+                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - File not found"
+            )
+            return
+
         result = await _upload_file(client, cloud_channel, symmetric_key, file_path)
+
         new_cloudmap[result["msg_id"]] = result["attrib"]
         await loop.run_in_executor(None, update_cloudmap, new_cloudmap)
+
+        print(
+            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL}   {result['attrib']['file_path']}"
+        )
+
     else:
-        prepared_data = _prepare_pushed_data(config)
+        dir_path = os.path.abspath(config.directory)
+        if not os.path.exists(dir_path):
+            print(
+                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Directory not found"
+            )
+            return
+
+        prepared_data = _prepare_pushed_data(dir_path)
         tasks = [
             _upload_file(client, cloud_channel, symmetric_key, file_path)
             for file_path in prepared_data
