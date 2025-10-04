@@ -127,6 +127,7 @@ async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, f
         file_decryption_thread = threading.Thread(
             target=decrypt_file,
             args=(symmetric_key, file_from_cloud, file["saved_path"], loop, future),
+            daemon=True,
         )
         file_decryption_thread.start()
 

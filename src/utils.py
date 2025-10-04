@@ -47,3 +47,12 @@ def get_checksum(
 
     if not future.done():
         loop.call_soon_threadsafe(future.set_result, checksum.hexdigest())
+
+
+def convert_bytes_to_int(bytes_num):
+    b = {"KB": 1024, "MB": 1024 * 1024, "GB": 1024 * 1024 * 1024}
+
+    num = int(bytes_num[:-2].strip())
+    bytes_unit = b[bytes_num[-2:].upper()]
+
+    return num * bytes_unit

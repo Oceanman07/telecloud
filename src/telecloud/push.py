@@ -149,6 +149,7 @@ async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, fil
                 loop,
                 encryption_process_future,
             ),
+            daemon=True,
         )
         file_encryption_thread.start()
 
@@ -183,6 +184,7 @@ def _prepare_pushed_data(
     excluded_dirs,
     excluded_files,
     excluded_file_suffixes,
+    max_size,
     is_recursive,
 ):
     existed_file_paths = get_existed_file_paths_on_cloudmap()
@@ -194,12 +196,14 @@ def _prepare_pushed_data(
             continue
 
         for file_name in file_names:
+            file_path = os.path.join(dir_path, file_name)
+
             if file_name in excluded_files:
                 continue
             if any(file_name.endswith(suffix) for suffix in excluded_file_suffixes):
                 continue
-
-            file_path = os.path.join(dir_path, file_name)
+            if os.path.getsize(file_path) > max_size:
+                continue
 
             if file_path not in existed_file_paths:
                 file_paths.append(file_path)
@@ -263,6 +267,7 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
             excluded_dirs=config.excluded_dirs,
             excluded_files=config.excluded_files,
             excluded_file_suffixes=config.excluded_file_suffixes,
+            max_size=config.max_size,
             is_recursive=config.is_recursive,
         )
         tasks = [

@@ -1,3 +1,6 @@
+from .utils import convert_bytes_to_int
+
+
 class Config:
     def __init__(
         self,
@@ -9,6 +12,7 @@ class Config:
         excluded_dirs,
         excluded_files,
         excluded_file_suffixes,
+        max_size,
     ):
         self.__action = action
         self.__password = password
@@ -18,6 +22,7 @@ class Config:
         self.__excluded_dirs = excluded_dirs
         self.__excluded_files = excluded_files
         self.__excluded_file_suffixes = excluded_file_suffixes
+        self.__max_size = max_size
 
     @property
     def action(self):
@@ -50,3 +55,7 @@ class Config:
     @property
     def excluded_file_suffixes(self):
         return self.__excluded_file_suffixes
+
+    @property
+    def max_size(self):
+        return convert_bytes_to_int(self.__max_size)

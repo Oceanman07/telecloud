@@ -40,6 +40,8 @@ def _parse_args():
         default=[],
     )
 
+    parser.add_argument("-ms", "--max-size", dest="max_size", default="2GB")
+
     return parser.parse_args()
 
 
@@ -58,4 +60,5 @@ def load_config():
         excluded_files=args.excluded_files,
         excluded_file_suffixes=args.excluded_file_suffixes,
         is_recursive=args.is_recursive,
+        max_size=args.max_size,
     )
