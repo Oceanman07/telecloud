@@ -178,13 +178,27 @@ async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, fil
         }
 
 
-def _prepare_pushed_data(root_directory):
+def _prepare_pushed_data(
+    root_directory,
+    excluded_dirs,
+    excluded_files,
+    excluded_file_suffixes,
+    is_recursive,
+):
     existed_file_paths = get_existed_file_paths_on_cloudmap()
     checksums = get_existed_checksums()
 
     file_paths = []
     for dir_path, _, file_names in os.walk(root_directory):
+        if os.path.basename(dir_path) in excluded_dirs:
+            continue
+
         for file_name in file_names:
+            if file_name in excluded_files:
+                continue
+            if any(file_name.endswith(suffix) for suffix in excluded_file_suffixes):
+                continue
+
             file_path = os.path.join(dir_path, file_name)
 
             if file_path not in existed_file_paths:
@@ -198,6 +212,9 @@ def _prepare_pushed_data(root_directory):
             print(
                 f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Remained{Style.RESET_ALL}   {file_path}"
             )
+
+        if not is_recursive:
+            break
 
     return file_paths
 
@@ -241,7 +258,13 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
             )
             return
 
-        prepared_data = _prepare_pushed_data(dir_path)
+        prepared_data = _prepare_pushed_data(
+            root_directory=dir_path,
+            excluded_dirs=config.excluded_dirs,
+            excluded_files=config.excluded_files,
+            excluded_file_suffixes=config.excluded_file_suffixes,
+            is_recursive=config.is_recursive,
+        )
         tasks = [
             _upload_file(client, cloud_channel, symmetric_key, file_path)
             for file_path in prepared_data

@@ -34,7 +34,6 @@ async def main():
 
     async with TelegramClient(SESSION_PATH, api_id=api_id, api_hash=api_hash) as client:
         # await delete_msgs(client)
-        # os.remove("/Users/supertempclient/.telecloud/cloudmap.json")
         # return
 
         try:
