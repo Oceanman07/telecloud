@@ -51,6 +51,14 @@ def load_config():
         exit()
 
     args = _parse_args()
+
+    if (
+        args.max_size[-2:] not in ("KB", "MB", "GB")
+        or not (args.max_size[:-2]).strip().isdigit()
+    ):
+        print("Only accept KB, MB, GB. Ex: 1KB, 1 MB, 1  GB")
+        exit()
+
     return Config(
         action=args.action,
         password=args.password,
