@@ -84,6 +84,13 @@ async def _upload_big_file(client: TelegramClient, cloud_channel, file_path):
             except ConnectionError:
                 return
 
+            except FileNotFoundError:
+                # This exception raises when trying to stop the program during sending file parts (from big file)
+                # in the main thread the program will call clean_prepared_data which cleans all the encrypted file parts
+                # and the pushing process (_upload_big_file) may touch that one encrypted file part
+                # and that part is already deleted (clean by clean_prepared_data) -> FileNotFoundError
+                return
+
     loop = asyncio.get_running_loop()
 
     # Split the big file into multiple smaller files
@@ -242,6 +249,11 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
         if not os.path.exists(file_path):
             print(
                 f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - File not found"
+            )
+            return
+        if not os.path.isfile(file_path):
+            print(
+                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Not a file"
             )
             return
         try:

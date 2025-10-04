@@ -3,6 +3,7 @@ import asyncio
 import time
 
 from dotenv import load_dotenv
+from colorama import Style, Fore
 from telethon import TelegramClient
 
 from src.parser import load_config
@@ -54,7 +55,6 @@ async def main():
             for coro in asyncio.all_tasks(loop):
                 coro.cancel()
 
-    time.sleep(0.5)
     clean_prepared_data()
 
 
