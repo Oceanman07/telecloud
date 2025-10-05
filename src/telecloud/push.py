@@ -247,20 +247,11 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
     new_cloudmap = get_cloudmap()
     cloud_channel = await client.get_entity(get_cloud_channel_id())
 
-    if config.file:
-        file_path = os.path.abspath(config.file)
-        if not os.path.exists(file_path):
-            print(
-                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - File not found"
-            )
-            return
-        if not os.path.isfile(file_path):
-            print(
-                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Not a file"
-            )
-            return
+    if os.path.isfile(config.target_path):
         try:
-            result = await _upload_file(client, cloud_channel, symmetric_key, file_path)
+            result = await _upload_file(
+                client, cloud_channel, symmetric_key, config.target_path
+            )
             new_cloudmap[result["msg_id"]] = result["attrib"]
             await loop.run_in_executor(None, update_cloudmap, new_cloudmap)
             print(
@@ -270,15 +261,8 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
             return
 
     else:
-        dir_path = os.path.abspath(config.directory)
-        if not os.path.exists(dir_path):
-            print(
-                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Directory not found"
-            )
-            return
-
         prepared_data = _prepare_pushed_data(
-            root_directory=dir_path,
+            root_directory=config.target_path,
             excluded_dirs=config.excluded_dirs,
             excluded_files=config.excluded_files,
             excluded_file_suffixes=config.excluded_file_suffixes,

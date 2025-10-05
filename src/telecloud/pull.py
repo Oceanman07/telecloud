@@ -194,36 +194,33 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
 
     cloud_channel = await client.get_entity(get_cloud_channel_id())
 
-    if config.file:
-        file = {}
-        # get the lastest file
-        reversed_cloudmap = dict(reversed(get_cloudmap().items()))
-        for msg_id in reversed_cloudmap:
-            file_name = os.path.basename(reversed_cloudmap[msg_id]["file_path"])
-            if file_name == config.file:
-                file["msg_id"] = msg_id
-                file["file_size"] = reversed_cloudmap[msg_id]["file_size"]
-                file["saved_path"] = os.path.abspath(file_name)
-                try:
-                    result = await _download_file(
-                        client, cloud_channel, symmetric_key, file
-                    )
-                    print(
-                        f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL}   {result}"
-                    )
-                    return
-                except asyncio.exceptions.CancelledError:
-                    return
-        print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - File not found"
-        )
+    file = {}
+    # get the lastest file
+    reversed_cloudmap = dict(reversed(get_cloudmap().items()))
+    for msg_id in reversed_cloudmap:
+        file_name = os.path.basename(reversed_cloudmap[msg_id]["file_path"])
+        if file_name == os.path.basename(config.target_path):
+            file["msg_id"] = msg_id
+            file["file_size"] = reversed_cloudmap[msg_id]["file_size"]
+            file["saved_path"] = os.path.abspath(file_name)
+            try:
+                result = await _download_file(
+                    client, cloud_channel, symmetric_key, file
+                )
+                print(
+                    f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL}   {result}"
+                )
+                return
+            except asyncio.exceptions.CancelledError:
+                return
 
-    else:
-        saved_dirpath = os.path.abspath(config.directory)
-        os.makedirs(saved_dirpath, exist_ok=True)
-
+    # If the target_path is a file pushed on Cloud
+    # that target_path will be found and downloaded in the above code
+    # -> after downloading -> it returns the function -> stop
+    # otherwise the below code will run (pulling all the file to the target directory)
+    if os.path.exists(config.target_path) and os.path.isdir(config.target_path):
         prepared_data = _prepare_pulled_data(
-            saved_directory=saved_dirpath,
+            saved_directory=config.target_path,
             excluded_files=config.excluded_files,
             excluded_file_suffixes=config.excluded_file_suffixes,
             max_size=config.max_size,
@@ -247,3 +244,8 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
             print(
                 f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result}"
             )
+    else:
+        print(
+            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - File not found"
+        )
+        return

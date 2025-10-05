@@ -7,9 +7,8 @@ class Config:
     def __init__(
         self,
         action,
+        target_path,
         password,
-        file,
-        directory,
         is_recursive,
         excluded_dirs,
         excluded_files,
@@ -18,9 +17,8 @@ class Config:
         max_size,
     ):
         self.__action = action
+        self.__target_path = target_path
         self.__password = password
-        self.__file = file
-        self.__directory = directory
         self.__is_recursive = is_recursive
         self.__excluded_dirs = excluded_dirs
         self.__excluded_files = excluded_files
@@ -33,16 +31,12 @@ class Config:
         return self.__action
 
     @property
+    def target_path(self):
+        return self.__target_path
+
+    @property
     def password(self):
         return self.__password
-
-    @property
-    def file(self):
-        return self.__file
-
-    @property
-    def directory(self):
-        return self.__directory
 
     @property
     def is_recursive(self):
