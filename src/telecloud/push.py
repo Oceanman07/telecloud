@@ -191,20 +191,12 @@ def _prepare_pushed_data(
     excluded_dirs,
     excluded_files,
     excluded_file_suffixes,
-    in_name,
     max_size,
     is_recursive,
+    filter_name_func,
 ):
     existed_file_paths = get_existed_file_paths_on_cloudmap()
     checksums = get_existed_checksums()
-    if in_name["type"] == "in_with":
-        filter_name_func = lambda file_name: in_name["with"] in file_name
-    elif in_name["type"] == "rest_with":
-        filter_name_func = lambda file_name: file_name.endswith(in_name["with"])
-    elif in_name["type"] == "first_with":
-        filter_name_func = lambda file_name: file_name.startswith(in_name["with"])
-    else:
-        filter_name_func = lambda _: True
 
     file_paths = []
     for dir_path, _, file_names in os.walk(root_directory):
@@ -291,8 +283,8 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
             excluded_files=config.excluded_files,
             excluded_file_suffixes=config.excluded_file_suffixes,
             max_size=config.max_size,
-            in_name=config.in_name,
             is_recursive=config.is_recursive,
+            filter_name_func=config.filter_name_func,
         )
         tasks = [
             _upload_file(client, cloud_channel, symmetric_key, file_path)

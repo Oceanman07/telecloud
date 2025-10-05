@@ -137,7 +137,13 @@ async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, f
         return file["saved_path"]
 
 
-def _prepare_pulled_data(saved_directory):
+def _prepare_pulled_data(
+    saved_directory,
+    excluded_files,
+    excluded_file_suffixes,
+    max_size,
+    filter_name_func,
+):
     cloudmap = get_cloudmap()
     existed_file_names = get_existed_file_names_on_cloudmap()
 
@@ -145,6 +151,15 @@ def _prepare_pulled_data(saved_directory):
     for msg_id in cloudmap:
         file_name = os.path.basename(cloudmap[msg_id]["file_path"])
         file_size = cloudmap[msg_id]["file_size"]
+
+        if file_name in excluded_files:
+            continue
+        if any(file_name.endswith(suffix) for suffix in excluded_file_suffixes):
+            continue
+        if not file_size <= max_size:
+            continue
+        if not filter_name_func(file_name):
+            continue
 
         # If a file has multiple uploads, when downloading we need to make its name different with time
         # since it shares the same name
@@ -207,7 +222,13 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
         saved_dirpath = os.path.abspath(config.directory)
         os.makedirs(saved_dirpath, exist_ok=True)
 
-        prepared_data = _prepare_pulled_data(saved_dirpath)
+        prepared_data = _prepare_pulled_data(
+            saved_directory=saved_dirpath,
+            excluded_files=config.excluded_files,
+            excluded_file_suffixes=config.excluded_file_suffixes,
+            max_size=config.max_size,
+            filter_name_func=config.filter_name_func,
+        )
         tasks = [
             _download_file(client, cloud_channel, symmetric_key, file)
             for file in prepared_data
