@@ -1,3 +1,5 @@
+import os
+
 from .utils import convert_bytes_to_int
 
 
@@ -12,6 +14,7 @@ class Config:
         excluded_dirs,
         excluded_files,
         excluded_file_suffixes,
+        in_name,
         max_size,
     ):
         self.__action = action
@@ -22,6 +25,7 @@ class Config:
         self.__excluded_dirs = excluded_dirs
         self.__excluded_files = excluded_files
         self.__excluded_file_suffixes = excluded_file_suffixes
+        self.__in_name = in_name
         self.__max_size = max_size
 
     @property
@@ -46,15 +50,28 @@ class Config:
 
     @property
     def excluded_dirs(self):
-        return self.__excluded_dirs
+        return [os.path.basename(excluded_dir) for excluded_dir in self.__excluded_dirs]
 
     @property
     def excluded_files(self):
-        return self.__excluded_files
+        return [
+            os.path.basename(excluded_file) for excluded_file in self.__excluded_files
+        ]
 
     @property
     def excluded_file_suffixes(self):
         return self.__excluded_file_suffixes
+
+    @property
+    def in_name(self):
+        if self.__in_name is None:
+            return {"type": False}
+        if self.__in_name.startswith("*") and self.__in_name.endswith("*"):
+            return {"type": "in_with", "with": self.__in_name[1:-1]}
+        if self.__in_name.startswith("*"):
+            return {"type": "rest_with", "with": self.__in_name[1:]}
+        if self.__in_name.endswith("*"):
+            return {"type": "first_with", "with": self.__in_name[:-1]}
 
     @property
     def max_size(self):
