@@ -1,9 +1,13 @@
+import os
 import asyncio
+import time
 
 from telethon import TelegramClient
+from colorama import Style, Fore
 
 from src.parser import load_config
 from src.aes import generate_key
+from src.protector import encrypt_key_test, decrypt_key_test
 from src.telecloud.push import push_data
 from src.telecloud.pull import pull_data
 from src.constants import SESSION_PATH
@@ -24,19 +28,30 @@ async def delete_msgs(client: TelegramClient):
 async def main():
     config = load_config()
 
+    symmetric_key = b""
+    if os.path.exists(SESSION_PATH + ".session"):
+        symmetric_key = generate_key(config.password, config.salt)
+
+        key_test_result = await decrypt_key_test(symmetric_key)
+        if not key_test_result["success"]:
+            print(
+                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Invalid password{Style.RESET_ALL}"
+            )
+            return
+
+        await encrypt_key_test(symmetric_key)
+
     async with TelegramClient(
         SESSION_PATH, api_id=config.api_id, api_hash=config.api_hash
     ) as client:
         # await delete_msgs(client)
         # return
 
+        if not check_health_cloudmap():
+            await setup_cloudmap(client, config.api_id, config.api_hash)
+            return
+
         try:
-            if not check_health_cloudmap():
-                await setup_cloudmap(client, config.api_id, config.api_hash)
-                return
-
-            symmetric_key = generate_key(config.password, config.salt)
-
             if config.action == "push":
                 await push_data(client, symmetric_key, config)
 

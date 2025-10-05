@@ -53,6 +53,7 @@ def _parse_args():
 
 def load_config():
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
+
     if sys.argv[1] not in ("push", "pull"):
         print("Usage: tc push/pull")
         exit()

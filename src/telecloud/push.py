@@ -7,7 +7,6 @@ import time
 from colorama import Style, Fore
 from telethon import TelegramClient
 
-from ._utils import encrypt_key_test, decrypt_key_test
 from ..config import Config
 from ..protector import encrypt_file
 from ..constants import FILE_PART_LENGTH_FOR_LARGE_FILE, STORED_PREPARED_FILE_PATHS
@@ -234,15 +233,6 @@ def _prepare_pushed_data(
 
 
 async def push_data(client: TelegramClient, symmetric_key, config: Config):
-    key_test_result = await decrypt_key_test(symmetric_key)
-    if not key_test_result["success"]:
-        print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Password does not match{Style.RESET_ALL}"
-        )
-        return
-
-    await encrypt_key_test(symmetric_key)
-
     loop = asyncio.get_running_loop()
     new_cloudmap = get_cloudmap()
     cloud_channel = await client.get_entity(get_cloud_channel_id())

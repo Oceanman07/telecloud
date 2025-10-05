@@ -7,7 +7,6 @@ import time
 from colorama import Style, Fore
 from telethon import TelegramClient
 
-from ._utils import encrypt_key_test, decrypt_key_test
 from ..config import Config
 from ..protector import decrypt_file
 from ..utils import read_file, read_file_in_chunk
@@ -183,15 +182,6 @@ def _prepare_pulled_data(
 
 
 async def pull_data(client: TelegramClient, symmetric_key, config: Config):
-    key_test_result = await decrypt_key_test(symmetric_key)
-    if not key_test_result["success"]:
-        print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - {key_test_result['error']}{Style.RESET_ALL}"
-        )
-        return
-
-    await encrypt_key_test(symmetric_key)
-
     cloud_channel = await client.get_entity(get_cloud_channel_id())
 
     file = {}
