@@ -7,6 +7,8 @@ from getpass import getpass
 from colorama import Fore, Style
 
 from src.config import Config
+from src.constants import STORED_CLOUDMAP_PATHS, CONFIG_PATH
+from src.cloudmapmanager import get_api_id, get_api_hash, get_salt_from_cloudmap
 
 
 def _parse_args():
@@ -50,9 +52,17 @@ def _parse_args():
 
 
 def load_config():
+    os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
     if sys.argv[1] not in ("push", "pull"):
         print("Usage: tc push/pull")
         exit()
+
+    if not os.path.exists(CONFIG_PATH):
+        api_id = input("Your api_id: ")
+        api_hash = input("Your api_hash: ")
+    else:
+        api_id = get_api_id()
+        api_hash = get_api_hash()
 
     args = _parse_args()
 
@@ -70,9 +80,19 @@ def load_config():
         )
         exit()
 
-    password = args.password if args.password else getpass()
+    if not os.path.exists(CONFIG_PATH):
+        # CONFIG_PATH does not exist means the program have not setup yet
+        # in the setup step -> the salt will be generated and the password will be asked
+        salt = "No need yet"
+        password = "No need yet"
+    else:
+        salt = get_salt_from_cloudmap()
+        password = args.password if args.password else getpass()
 
     return Config(
+        api_id=api_id,
+        api_hash=api_hash,
+        salt=salt,
         action=args.action,
         target_path=target_path,
         password=password,

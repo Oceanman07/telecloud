@@ -1,11 +1,14 @@
 import os
 
-from .utils import convert_bytes_to_int
+from .utils import convert_bytes_to_int, write_file
 
 
 class Config:
     def __init__(
         self,
+        api_id,
+        api_hash,
+        salt,
         action,
         target_path,
         password,
@@ -16,6 +19,9 @@ class Config:
         in_name,
         max_size,
     ):
+        self.__api_id = api_id
+        self.__api_hash = api_hash
+        self.__salt = salt
         self.__action = action
         self.__target_path = target_path
         self.__password = password
@@ -25,6 +31,18 @@ class Config:
         self.__excluded_file_suffixes = excluded_file_suffixes
         self.__in_name = in_name
         self.__max_size = max_size
+
+    @property
+    def api_id(self):
+        return int(self.__api_id)
+
+    @property
+    def api_hash(self):
+        return self.__api_hash
+
+    @property
+    def salt(self):
+        return self.__salt
 
     @property
     def action(self):

@@ -15,20 +15,17 @@ from .logo import LOGO
 from .protector import encrypt_file
 from .utils import read_file, write_file
 from .constants import (
-    SALT_PATH,
+    CONFIG_PATH,
     KEY_TEST_PATH,
     CLOUDMAP_PATH,
-    STORED_CLOUDMAP_PATHS,
-    CLOUD_CHANNEL_ID_PATH,
     INCLUDED_CLOUDMAP_PATHS,
     STORED_PREPARED_FILE_PATHS,
 )
 
 
-async def setup_cloudmap(client: TelegramClient):
+async def setup_cloudmap(client: TelegramClient, api_id, api_hash):
     # This step is the very first step
     # -> write_file doesnt need to be async since the blocking doesnt affect at all
-    os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
 
     # encrypted files before uploading or decrypting will be stored here
     os.makedirs(STORED_PREPARED_FILE_PATHS, exist_ok=True)
@@ -50,7 +47,6 @@ async def setup_cloudmap(client: TelegramClient):
 
     # salt + password to generate key
     salt = os.urandom(32)
-    write_file(SALT_PATH, base64.b64encode(salt).decode(), mode="w")
 
     # a string for testing key
     write_file(
@@ -66,13 +62,20 @@ async def setup_cloudmap(client: TelegramClient):
     write_file(CLOUDMAP_PATH, json.dumps(cloudmap), mode="w")
 
     # create cloud channel to store files
-    if not os.path.exists(CLOUD_CHANNEL_ID_PATH):
-        channel_id = await _create_channel(client)
-        print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Style.RESET_ALL} Created cloud channel with ID:{channel_id}"
-        )
-        write_file(CLOUD_CHANNEL_ID_PATH, str(channel_id), mode="w")
-        await _set_channel_photo(client)
+    channel_id = await _create_channel(client)
+    print(
+        f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Style.RESET_ALL} Created cloud channel with ID:{channel_id}"
+    )
+
+    config = {
+        "api_id": api_id,
+        "api_hash": api_hash,
+        "salt": base64.b64encode(salt).decode(),
+        "cloud_channel_id": channel_id,
+    }
+    write_file(CONFIG_PATH, json.dumps(config), mode="w")
+
+    await _set_channel_photo(client)
 
 
 def check_health_cloudmap():
@@ -99,10 +102,6 @@ async def _create_channel(client: TelegramClient):
     return channel.chats[0].id
 
 
-def get_cloud_channel_id():
-    return int(read_file(CLOUD_CHANNEL_ID_PATH))
-
-
 def update_cloudmap(cloudmap):
     write_file(CLOUDMAP_PATH, json.dumps(cloudmap, ensure_ascii=False), mode="w")
 
@@ -111,9 +110,24 @@ def get_cloudmap():
     return json.loads(read_file(CLOUDMAP_PATH))
 
 
+def get_cloud_channel_id():
+    config = json.loads(read_file(CONFIG_PATH))
+    return int(config["cloud_channel_id"])
+
+
 def get_salt_from_cloudmap():
-    salt = read_file(SALT_PATH)
-    return base64.b64decode(salt)
+    config = json.loads(read_file(CONFIG_PATH))
+    return base64.b64decode(config["salt"])
+
+
+def get_api_id():
+    config = json.loads(read_file(CONFIG_PATH))
+    return config["api_id"]
+
+
+def get_api_hash():
+    config = json.loads(read_file(CONFIG_PATH))
+    return config["api_hash"]
 
 
 def get_existed_file_paths_on_cloudmap():

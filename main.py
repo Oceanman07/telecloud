@@ -1,7 +1,5 @@
-import os
 import asyncio
 
-from dotenv import load_dotenv
 from telethon import TelegramClient
 
 from src.parser import load_config
@@ -13,13 +11,8 @@ from src.cloudmapmanager import (
     setup_cloudmap,
     check_health_cloudmap,
     get_cloud_channel_id,
-    get_salt_from_cloudmap,
     clean_prepared_data,
 )
-
-load_dotenv()
-api_id = int(os.environ["API_ID"])
-api_hash = os.environ["API_HASH"]
 
 
 async def delete_msgs(client: TelegramClient):
@@ -31,16 +24,18 @@ async def delete_msgs(client: TelegramClient):
 async def main():
     config = load_config()
 
-    async with TelegramClient(SESSION_PATH, api_id=api_id, api_hash=api_hash) as client:
+    async with TelegramClient(
+        SESSION_PATH, api_id=config.api_id, api_hash=config.api_hash
+    ) as client:
         # await delete_msgs(client)
         # return
 
         try:
             if not check_health_cloudmap():
-                await setup_cloudmap(client)
+                await setup_cloudmap(client, config.api_id, config.api_hash)
+                return
 
-            salt = get_salt_from_cloudmap()
-            symmetric_key = generate_key(config.password, salt)
+            symmetric_key = generate_key(config.password, config.salt)
 
             if config.action == "push":
                 await push_data(client, symmetric_key, config)
