@@ -1,6 +1,6 @@
 import os
 
-from .utils import convert_bytes_to_int, write_file
+from .utils import convert_bytes_to_int
 
 
 class Config:
@@ -34,7 +34,7 @@ class Config:
 
     @property
     def api_id(self):
-        return int(self.__api_id)
+        return self.__api_id
 
     @property
     def api_hash(self):

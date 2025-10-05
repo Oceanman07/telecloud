@@ -236,6 +236,7 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
     loop = asyncio.get_running_loop()
     new_cloudmap = get_cloudmap()
     cloud_channel = await client.get_entity(get_cloud_channel_id())
+    # cloud_channel = await client.get_entity(get_cloud_channel_id())
 
     if os.path.isfile(config.target_path):
         try:

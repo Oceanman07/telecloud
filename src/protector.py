@@ -5,10 +5,10 @@ import threading
 from . import aes
 from .utils import read_file, read_file_in_chunk, write_file
 from .constants import (
+    STRING_SESSION_PATH,
     NONCE_LENGTH,
     TAG_LENGTH,
     CHUNK_LENGTH_FOR_LARGE_FILE,
-    KEY_TEST_PATH,
 )
 
 
@@ -69,36 +69,42 @@ def decrypt_file(
         loop.call_soon_threadsafe(future.set_result, {"success": True})
 
 
-async def encrypt_key_test(symmetric_key):
-    write_file(
-        KEY_TEST_PATH,
-        "detect if the symmetric key is valid or not, if not then no need to start pushing/pulling files",
-        mode="w",
-    )
-
+async def encrypt_string_session(symmetric_key):
     loop = asyncio.get_running_loop()
     future = loop.create_future()
 
     thread = threading.Thread(
         target=encrypt_file,
-        args=(symmetric_key, KEY_TEST_PATH, KEY_TEST_PATH, loop, future),
+        args=(symmetric_key, STRING_SESSION_PATH, STRING_SESSION_PATH, loop, future),
     )
     thread.start()
 
     await future
 
 
-async def decrypt_key_test(symmetric_key):
-    """
-    Test the symmetric_key to check if its valid or not, if not then stop
-    """
+async def decrypt_string_session(symmetric_key):
     loop = asyncio.get_running_loop()
-    future = loop.create_future()
 
-    thread = threading.Thread(
+    decryption_value_future = loop.create_future()
+    decrypt_string_session_thread = threading.Thread(
         target=decrypt_file,
-        args=(symmetric_key, KEY_TEST_PATH, KEY_TEST_PATH, loop, future),
+        args=(
+            symmetric_key,
+            STRING_SESSION_PATH,
+            STRING_SESSION_PATH,
+            loop,
+            decryption_value_future,
+        ),
     )
-    thread.start()
+    decrypt_string_session_thread.start()
 
-    return await future
+    result = await decryption_value_future
+    if not result["success"]:
+        return result
+
+    string_session = await loop.run_in_executor(
+        None, read_file, STRING_SESSION_PATH, "r"
+    )
+    result["string_session"] = string_session
+
+    return result

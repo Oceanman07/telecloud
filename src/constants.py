@@ -3,7 +3,7 @@ import os
 STORED_CLOUDMAP_PATHS = os.path.join(os.path.expanduser("~"), ".telecloud")
 CONFIG_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "config.json")
 STORED_PREPARED_FILE_PATHS = os.path.join(STORED_CLOUDMAP_PATHS, "prepared_data")
-SESSION_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "session")
+STRING_SESSION_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "string_session.session")
 CLOUDMAP_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "cloudmap.json")
 KEY_TEST_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "key_test")
 INCLUDED_CLOUDMAP_PATHS = (STORED_CLOUDMAP_PATHS, CLOUDMAP_PATH)

@@ -59,8 +59,8 @@ def load_config():
         exit()
 
     if not os.path.exists(CONFIG_PATH):
-        api_id = input("Your api_id: ")
-        api_hash = input("Your api_hash: ")
+        api_id = int(input("Please enter your app api_id: "))
+        api_hash = input("Please enter your app api_hash: ")
     else:
         api_id = get_api_id()
         api_hash = get_api_hash()
@@ -84,7 +84,7 @@ def load_config():
     if not os.path.exists(CONFIG_PATH):
         # CONFIG_PATH does not exist means the program have not setup yet
         # in the setup step -> the salt will be generated and the password will be asked
-        salt = "No need yet"
+        salt = b"No need yet"
         password = "No need yet"
     else:
         salt = get_salt_from_cloudmap()

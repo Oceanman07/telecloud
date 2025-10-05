@@ -12,18 +12,18 @@ from telethon.tl.types import InputChatUploadedPhoto
 
 from .aes import generate_key
 from .logo import LOGO
-from .protector import encrypt_file
+from .protector import encrypt_string_session
 from .utils import read_file, write_file
 from .constants import (
     CONFIG_PATH,
-    KEY_TEST_PATH,
     CLOUDMAP_PATH,
+    STRING_SESSION_PATH,
     INCLUDED_CLOUDMAP_PATHS,
     STORED_PREPARED_FILE_PATHS,
 )
 
 
-async def setup_cloudmap(client: TelegramClient, api_id, api_hash):
+async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
     # This step is the very first step
     # -> write_file doesnt need to be async since the blocking doesnt affect at all
 
@@ -48,14 +48,9 @@ async def setup_cloudmap(client: TelegramClient, api_id, api_hash):
     # salt + password to generate key
     salt = os.urandom(32)
 
-    # a string for testing key
-    write_file(
-        KEY_TEST_PATH,
-        "detect if the symmetric key is valid or not, if not then no need to start pushing/pulling files",
-        mode="w",
-    )
     symmetric_key = generate_key(password, salt)
-    encrypt_file(symmetric_key, KEY_TEST_PATH, KEY_TEST_PATH, None, None)
+    write_file(STRING_SESSION_PATH, session, mode="w")
+    await encrypt_string_session(symmetric_key)
 
     # cloudmap stores file info -> msg_id, checksum, file_path, file_size, time
     cloudmap = {}
@@ -71,7 +66,9 @@ async def setup_cloudmap(client: TelegramClient, api_id, api_hash):
         "api_id": api_id,
         "api_hash": api_hash,
         "salt": base64.b64encode(salt).decode(),
-        "cloud_channel_id": channel_id,
+        "cloud_channel_id": int(
+            "-100" + str(channel_id)
+        ),  # PeerChannel → -100 + channel ID
     }
     write_file(CONFIG_PATH, json.dumps(config), mode="w")
 
@@ -112,7 +109,7 @@ def get_cloudmap():
 
 def get_cloud_channel_id():
     config = json.loads(read_file(CONFIG_PATH))
-    return int(config["cloud_channel_id"])
+    return config["cloud_channel_id"]
 
 
 def get_salt_from_cloudmap():

@@ -2,15 +2,17 @@ import os
 import asyncio
 import time
 
-from telethon import TelegramClient
 from colorama import Style, Fore
+from telethon import TelegramClient
+from telethon.sessions import StringSession
 
 from src.parser import load_config
 from src.aes import generate_key
-from src.protector import encrypt_key_test, decrypt_key_test
+from src.protector import encrypt_string_session, decrypt_string_session
 from src.telecloud.push import push_data
 from src.telecloud.pull import pull_data
-from src.constants import SESSION_PATH
+from src.utils import write_file
+from src.constants import STRING_SESSION_PATH
 from src.cloudmapmanager import (
     setup_cloudmap,
     check_health_cloudmap,
@@ -28,27 +30,35 @@ async def delete_msgs(client: TelegramClient):
 async def main():
     config = load_config()
 
-    symmetric_key = b""
-    if os.path.exists(SESSION_PATH + ".session"):
-        symmetric_key = generate_key(config.password, config.salt)
+    loop = asyncio.get_running_loop()
 
-        key_test_result = await decrypt_key_test(symmetric_key)
-        if not key_test_result["success"]:
+    session = StringSession()
+    symmetric_key = generate_key(config.password, config.salt)
+
+    if os.path.exists(STRING_SESSION_PATH):
+        result = await decrypt_string_session(symmetric_key)
+        if not result["success"]:
             print(
-                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Invalid password{Style.RESET_ALL}"
+                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - {result['error']}{Style.RESET_ALL}"
             )
             return
 
-        await encrypt_key_test(symmetric_key)
+        session = StringSession(result["string_session"])
+
+        await loop.run_in_executor(
+            None, write_file, STRING_SESSION_PATH, result["string_session"], "w"
+        )
+        await encrypt_string_session(symmetric_key)
 
     async with TelegramClient(
-        SESSION_PATH, api_id=config.api_id, api_hash=config.api_hash
+        session, api_id=config.api_id, api_hash=config.api_hash
     ) as client:
         # await delete_msgs(client)
         # return
 
         if not check_health_cloudmap():
-            await setup_cloudmap(client, config.api_id, config.api_hash)
+            string_session = session.save()
+            await setup_cloudmap(client, string_session, config.api_id, config.api_hash)
             return
 
         try:
@@ -59,7 +69,6 @@ async def main():
                 await pull_data(client, symmetric_key, config)
 
         except KeyboardInterrupt:
-            loop = asyncio.get_running_loop()
             for coro in asyncio.all_tasks(loop):
                 coro.cancel()
 
