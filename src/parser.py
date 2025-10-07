@@ -6,9 +6,9 @@ from getpass import getpass
 
 from colorama import Fore, Style
 
-from src.config import Config
-from src.constants import STORED_CLOUDMAP_PATHS, CONFIG_PATH
-from src.cloudmapmanager import get_api_id, get_api_hash, get_salt_from_cloudmap
+from .config import Config
+from .constants import STORED_CLOUDMAP_PATHS, CONFIG_PATH
+from .cloudmapmanager import get_api_id, get_api_hash, get_salt_from_cloudmap
 
 
 def _parse_args():

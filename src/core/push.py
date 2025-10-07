@@ -66,8 +66,13 @@ def _split_big_file(file_path, loop: asyncio.AbstractEventLoop, future: asyncio.
         loop.call_soon_threadsafe(future.set_result, file_parts)
 
 
-async def _upload_big_file(client: TelegramClient, cloud_channel, file_path):
-    semaphore = asyncio.Semaphore(3)
+async def _upload_big_file(
+    client: TelegramClient, cloud_channel, file_path, is_single_file=False
+):
+    if is_single_file:
+        semaphore = asyncio.Semaphore(8)
+    else:
+        semaphore = asyncio.Semaphore(3)
 
     async def upload(file_part):
         async with semaphore:
@@ -122,7 +127,13 @@ async def _upload_big_file(client: TelegramClient, cloud_channel, file_path):
     return msg[upload_info_path]
 
 
-async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, file_path):
+async def _upload_file(
+    client: TelegramClient,
+    cloud_channel,
+    symmetric_key,
+    file_path,
+    is_single_file=False,
+):
     async with SEMAPHORE:
         print(
             f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushing{Style.RESET_ALL} {file_path}"
@@ -169,7 +180,10 @@ async def _upload_file(client: TelegramClient, cloud_channel, symmetric_key, fil
                 )
             else:
                 msg_id = await _upload_big_file(
-                    client, cloud_channel, encrypted_file_path
+                    client,
+                    cloud_channel,
+                    encrypted_file_path,
+                    is_single_file=is_single_file,
                 )
         except ConnectionError:
             return
@@ -236,12 +250,15 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
     loop = asyncio.get_running_loop()
     new_cloudmap = get_cloudmap()
     cloud_channel = await client.get_entity(get_cloud_channel_id())
-    # cloud_channel = await client.get_entity(get_cloud_channel_id())
 
     if os.path.isfile(config.target_path):
         try:
             result = await _upload_file(
-                client, cloud_channel, symmetric_key, config.target_path
+                client,
+                cloud_channel,
+                symmetric_key,
+                config.target_path,
+                is_single_file=True,
             )
             new_cloudmap[result["msg_id"]] = result["attrib"]
             await loop.run_in_executor(None, update_cloudmap, new_cloudmap)

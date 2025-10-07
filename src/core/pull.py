@@ -61,8 +61,13 @@ def _merge_file_parts(
         loop.call_soon_threadsafe(future.set_result, merged_file)
 
 
-async def _download_big_file(client: TelegramClient, cloud_channel, msg_id):
-    semaphore = asyncio.Semaphore(3)
+async def _download_big_file(
+    client: TelegramClient, cloud_channel, msg_id, is_single_file=False
+):
+    if is_single_file:
+        semaphore = asyncio.Semaphore(8)
+    else:
+        semaphore = asyncio.Semaphore(3)
 
     async def download(id):
         async with semaphore:
@@ -102,7 +107,9 @@ async def _download_big_file(client: TelegramClient, cloud_channel, msg_id):
     return await merged_file_value_future
 
 
-async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, file):
+async def _download_file(
+    client: TelegramClient, cloud_channel, symmetric_key, file, is_single_file=False
+):
     async with SEMAPHORE:
         print(
             f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulling{Style.RESET_ALL} {file['saved_path']}"
@@ -115,7 +122,10 @@ async def _download_file(client: TelegramClient, cloud_channel, symmetric_key, f
                 )
             else:
                 file_from_cloud = await _download_big_file(
-                    client, cloud_channel, int(file["msg_id"])
+                    client,
+                    cloud_channel,
+                    int(file["msg_id"]),
+                    is_single_file=is_single_file,
                 )
         except ConnectionError:
             return
@@ -195,7 +205,7 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
             file["saved_path"] = os.path.abspath(file_name)
             try:
                 result = await _download_file(
-                    client, cloud_channel, symmetric_key, file
+                    client, cloud_channel, symmetric_key, file, is_single_file=True
                 )
                 print(
                     f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL}   {result}"

@@ -98,13 +98,4 @@ async def decrypt_string_session(symmetric_key):
     )
     decrypt_string_session_thread.start()
 
-    result = await decryption_value_future
-    if not result["success"]:
-        return result
-
-    string_session = await loop.run_in_executor(
-        None, read_file, STRING_SESSION_PATH, "r"
-    )
-    result["string_session"] = string_session
-
-    return result
+    return await decryption_value_future

@@ -9,22 +9,15 @@ from telethon.sessions import StringSession
 from src.parser import load_config
 from src.aes import generate_key
 from src.protector import encrypt_string_session, decrypt_string_session
-from src.telecloud.push import push_data
-from src.telecloud.pull import pull_data
-from src.utils import write_file
+from src.core.push import push_data
+from src.core.pull import pull_data
+from src.utils import read_file
 from src.constants import STRING_SESSION_PATH
 from src.cloudmapmanager import (
     setup_cloudmap,
     check_health_cloudmap,
-    get_cloud_channel_id,
     clean_prepared_data,
 )
-
-
-async def delete_msgs(client: TelegramClient):
-    channel = await client.get_entity(get_cloud_channel_id())
-    async for msg in client.iter_messages(channel):
-        await client.delete_messages(channel, msg.id)
 
 
 async def main():
@@ -43,11 +36,11 @@ async def main():
             )
             return
 
-        session = StringSession(result["string_session"])
-
-        await loop.run_in_executor(
-            None, write_file, STRING_SESSION_PATH, result["string_session"], "w"
+        string_session = await loop.run_in_executor(
+            None, read_file, STRING_SESSION_PATH, "r"
         )
+        session = StringSession(string_session)
+
         await encrypt_string_session(symmetric_key)
 
     async with TelegramClient(
