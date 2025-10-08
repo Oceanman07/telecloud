@@ -9,6 +9,7 @@ from telethon.sessions import StringSession
 from src.parser import load_config
 from src.aes import generate_key
 from src.protector import encrypt_string_session, decrypt_string_session
+from src.core.find import find_data
 from src.core.push import push_data
 from src.core.pull import pull_data
 from src.utils import read_file
@@ -22,6 +23,10 @@ from src.cloudmapmanager import (
 
 async def main():
     config = load_config()
+
+    if config.action == "find":
+        find_data(config)
+        return
 
     loop = asyncio.get_running_loop()
 

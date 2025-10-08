@@ -84,6 +84,7 @@ class Config:
             return lambda file_name: file_name.endswith(self.__in_name[1:])
         if self.__in_name.endswith("*"):
             return lambda file_name: file_name.startswith(self.__in_name[:-1])
+        return lambda _: False
 
     @property
     def max_size(self):

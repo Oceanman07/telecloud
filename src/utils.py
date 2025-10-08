@@ -56,3 +56,10 @@ def convert_bytes_to_int(bytes_num):
     bytes_unit = b[bytes_num[-2:].upper()]
 
     return num * bytes_unit
+
+
+def convert_bytes(bytes_num):
+    for unit in ("bytes", "KB", "MB", "GB"):
+        if bytes_num < 1024:
+            return f"{round(bytes_num, 2)} {unit}"
+        bytes_num /= 1024

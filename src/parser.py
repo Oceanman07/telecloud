@@ -17,9 +17,9 @@ def _parse_args():
     # Required arguments
     parser.add_argument(
         "action",
-        choices=["push", "pull"],
+        choices=["push", "pull", "find"],
     )
-    parser.add_argument("target_path")
+    parser.add_argument("target_path", nargs="?")
 
     # Optional arguments
     parser.add_argument(
@@ -54,8 +54,8 @@ def _parse_args():
 def load_config():
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
 
-    if sys.argv[1] not in ("push", "pull"):
-        print("Usage: tc push/pull")
+    if sys.argv[1] not in ("push", "pull", "find"):
+        print("Usage: tc push/pull [target_path]")
         exit()
 
     if not os.path.exists(CONFIG_PATH):
@@ -67,6 +67,10 @@ def load_config():
 
     args = _parse_args()
 
+    if args.action in ("push", "pull") and not args.target_path:
+        print("Usage: tc push/pull [target_path]")
+        exit()
+
     if (
         args.max_size[-2:] not in ("KB", "MB", "GB")
         or not (args.max_size[:-2]).strip().isdigit()
@@ -74,14 +78,14 @@ def load_config():
         print("Only accept KB, MB, GB. Ex: 1KB, 1 MB, 1  GB")
         exit()
 
-    target_path = os.path.abspath(args.target_path)
+    target_path = os.path.abspath(args.target_path) if args.action != "find" else "None"
     if args.action == "push" and not os.path.exists(target_path):
         print(
             f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Path not found"
         )
         exit()
 
-    if not os.path.exists(CONFIG_PATH):
+    if not os.path.exists(CONFIG_PATH) or args.action == "find":
         # CONFIG_PATH does not exist means the program have not setup yet
         # in the setup step -> the salt will be generated and the password will be asked
         salt = b"No need yet"
