@@ -65,10 +65,11 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
     config = {
         "api_id": api_id,
         "api_hash": api_hash,
-        "salt": base64.b64encode(salt).decode(),
         "cloud_channel_id": int(
             "-100" + str(channel_id)
         ),  # PeerChannel → -100 + channel ID
+        "salt": base64.b64encode(salt).decode(),
+        "is_auto_fill_password": {"status": False, "value": None},
     }
     write_file(CONFIG_PATH, json.dumps(config), mode="w")
 

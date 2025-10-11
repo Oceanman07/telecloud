@@ -9,6 +9,7 @@ from telethon.sessions import StringSession
 from src.parser import load_config
 from src.aes import generate_key
 from src.protector import encrypt_string_session, decrypt_string_session
+from src.core.set_config import set_config
 from src.core.find import find_data
 from src.core.push import push_data
 from src.core.pull import pull_data
@@ -26,6 +27,10 @@ async def main():
 
     if config.action == "find":
         find_data(config)
+        return
+
+    elif config.action == "config":
+        set_config(config)
         return
 
     loop = asyncio.get_running_loop()

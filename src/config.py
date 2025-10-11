@@ -18,6 +18,7 @@ class Config:
         excluded_file_suffixes,
         in_name,
         max_size,
+        is_auto_fill_password,
     ):
         self.__api_id = api_id
         self.__api_hash = api_hash
@@ -31,6 +32,7 @@ class Config:
         self.__excluded_file_suffixes = excluded_file_suffixes
         self.__in_name = in_name
         self.__max_size = max_size
+        self.__is_auto_fill_password = is_auto_fill_password
 
     @property
     def api_id(self):
@@ -89,3 +91,7 @@ class Config:
     @property
     def max_size(self):
         return convert_bytes_to_int(self.__max_size)
+
+    @property
+    def is_auto_fill_password(self):
+        return self.__is_auto_fill_password

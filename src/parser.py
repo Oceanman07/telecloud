@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import time
 import argparse
 from getpass import getpass
@@ -17,7 +18,7 @@ def _parse_args():
     # Required arguments
     parser.add_argument(
         "action",
-        choices=["push", "pull", "find"],
+        choices=["push", "pull", "find", "config"],
     )
     parser.add_argument("target_path", nargs="?")
 
@@ -48,13 +49,19 @@ def _parse_args():
 
     parser.add_argument("-ms", "--max-size", dest="max_size", default="2GB")
 
+    parser.add_argument(
+        "--auto-fill-password",
+        dest="is_auto_fill_password",
+        choices=["true", "false"],
+    )
+
     return parser.parse_args()
 
 
 def load_config():
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
 
-    if sys.argv[1] not in ("push", "pull", "find"):
+    if sys.argv[1] not in ("push", "pull", "find", "config"):
         print("Usage: tc push/pull [target_path]")
         exit()
 
@@ -78,7 +85,11 @@ def load_config():
         print("Only accept KB, MB, GB. Ex: 1KB, 1 MB, 1  GB")
         exit()
 
-    target_path = os.path.abspath(args.target_path) if args.action != "find" else "None"
+    target_path = (
+        os.path.abspath(args.target_path)
+        if args.action != "find" and args.action != "config"
+        else "None"
+    )
     if args.action == "push" and not os.path.exists(target_path):
         print(
             f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Path not found"
@@ -91,8 +102,19 @@ def load_config():
         salt = b"No need yet"
         password = "No need yet"
     else:
+        with open(CONFIG_PATH, "r") as f:
+            config = json.load(f)
+
+        if args.password:
+            password = args.password
+        elif config["is_auto_fill_password"]["status"]:
+            password = config["is_auto_fill_password"]["value"]
+        elif args.is_auto_fill_password == "false":
+            password = "No need yet"
+        else:
+            password = getpass()
+
         salt = get_salt_from_cloudmap()
-        password = args.password if args.password else getpass()
 
     return Config(
         api_id=api_id,
@@ -107,4 +129,5 @@ def load_config():
         is_recursive=args.is_recursive,
         in_name=args.in_name,
         max_size=args.max_size,
+        is_auto_fill_password=args.is_auto_fill_password,
     )
