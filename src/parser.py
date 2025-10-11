@@ -18,7 +18,7 @@ def _parse_args():
     # Required arguments
     parser.add_argument(
         "action",
-        choices=["push", "pull", "find", "config"],
+        choices=["push", "pull", "list", "config"],
     )
     parser.add_argument("target_path", nargs="?")
 
@@ -61,7 +61,7 @@ def _parse_args():
 def load_config():
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
 
-    if sys.argv[1] not in ("push", "pull", "find", "config"):
+    if sys.argv[1] not in ("push", "pull", "list", "config"):
         print("Usage: tc push/pull [target_path]")
         exit()
 
@@ -87,7 +87,7 @@ def load_config():
 
     target_path = (
         os.path.abspath(args.target_path)
-        if args.action != "find" and args.action != "config"
+        if args.action != "list" and args.action != "config"
         else "None"
     )
     if args.action == "push" and not os.path.exists(target_path):
@@ -96,7 +96,7 @@ def load_config():
         )
         exit()
 
-    if not os.path.exists(CONFIG_PATH) or args.action == "find":
+    if not os.path.exists(CONFIG_PATH) or args.action == "list":
         # CONFIG_PATH does not exist means the program have not setup yet
         # in the setup step -> the salt will be generated and the password will be asked
         salt = b"No need yet"

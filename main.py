@@ -8,7 +8,7 @@ from src.parser import load_config
 from src.aes import generate_key
 from src.protector import load_string_session
 from src.core.set_config import set_config
-from src.core.find import find_data
+from src.core.listing import list_pushed_files
 from src.core.push import push_data
 from src.core.pull import pull_data
 from src.cloudmapmanager import (
@@ -24,8 +24,8 @@ async def main():
     if config.action == "config":
         set_config(config)
         return
-    elif config.action == "find":
-        find_data(config)
+    elif config.action == "list":
+        list_pushed_files(config)
         return
 
     symmetric_key = generate_key(config.password, config.salt)

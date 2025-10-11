@@ -5,7 +5,7 @@ from ..cloudmapmanager import get_cloudmap
 from ..utils import convert_bytes
 
 
-def find_data(config: Config):
+def list_pushed_files(config: Config):
     cloudmap = get_cloudmap()
 
     filter_name_func = config.filter_name_func
