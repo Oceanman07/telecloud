@@ -18,6 +18,7 @@ from .constants import (
     CONFIG_PATH,
     CLOUDMAP_PATH,
     STRING_SESSION_PATH,
+    STORED_CLOUDMAP_PATHS,
     INCLUDED_CLOUDMAP_PATHS,
     STORED_PREPARED_FILE_PATHS,
 )
@@ -26,6 +27,9 @@ from .constants import (
 async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
     # This step is the very first step
     # -> write_file doesnt need to be async since the blocking doesnt affect at all
+
+    # the container
+    os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
 
     # encrypted files before uploading or decrypting will be stored here
     os.makedirs(STORED_PREPARED_FILE_PATHS, exist_ok=True)
