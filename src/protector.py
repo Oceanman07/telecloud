@@ -2,6 +2,8 @@ import os
 import asyncio
 import threading
 
+from telethon.sessions import StringSession
+
 from . import aes
 from .utils import read_file, read_file_in_chunk, write_file
 from .constants import (
@@ -27,7 +29,7 @@ def encrypt_file(
 
     if loop and future:
         if not future.done():
-            # just await to finish the encryption process then no need to hold data
+            # just await to finish the encryption process then no need to hold actual data
             loop.call_soon_threadsafe(future.set_result, None)
 
 
@@ -82,7 +84,7 @@ async def encrypt_string_session(symmetric_key):
     await future
 
 
-async def decrypt_string_session(symmetric_key):
+async def _decrypt_string_session(symmetric_key):
     loop = asyncio.get_running_loop()
 
     decryption_value_future = loop.create_future()
@@ -99,3 +101,23 @@ async def decrypt_string_session(symmetric_key):
     decrypt_string_session_thread.start()
 
     return await decryption_value_future
+
+
+async def load_string_session(symmetric_key):
+    if not os.path.exists(STRING_SESSION_PATH):
+        return {"success": True, "string_session": StringSession()}
+
+    loop = asyncio.get_running_loop()
+
+    result = await _decrypt_string_session(symmetric_key)
+    if not result["success"]:
+        return result
+
+    string_session = await loop.run_in_executor(
+        None, read_file, STRING_SESSION_PATH, "r"
+    )
+    # # encrypte the string session file after reading in memory
+    await encrypt_string_session(symmetric_key)
+
+    result["string_session"] = StringSession(string_session)
+    return result
