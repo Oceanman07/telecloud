@@ -149,59 +149,79 @@ async def update_cloudmap(cloudmap):
     )
 
 
-def get_cloudmap():
-    return read_file(CLOUDMAP_PATH, mode="r", deserialize=True)
-
-
-def get_api_id():
+def load_config(func):
     config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+
+    def load():
+        return func(config)
+
+    return load
+
+
+@load_config
+def get_api_id(config):
     return config["api_id"]
 
 
-def get_api_hash():
-    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+@load_config
+def get_api_hash(config):
     return config["api_hash"]
 
 
-def get_cloud_channel_id():
-    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+@load_config
+def get_cloud_channel_id(config):
     return config["cloud_channel_id"]
 
 
-def get_salt_from_cloudmap():
-    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+@load_config
+def get_salt_from_cloudmap(config):
     return bytes.fromhex(config["salt"])
 
 
-def get_default_pulled_directory():
-    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+@load_config
+def get_default_pulled_directory(config):
     return config["pulled_directory"]
 
 
-def get_existed_file_paths_on_cloudmap():
-    cloudmap = get_cloudmap()
-    return [cloudmap[msg_id]["file_path"] for msg_id in cloudmap]
+def load_cloudmap(func):
+    cloudmap = read_file(CLOUDMAP_PATH, mode="r", deserialize=True)
+
+    def load():
+        return func(cloudmap)
+
+    return load
 
 
-def get_existed_file_names_on_cloudmap():
+@load_cloudmap
+def get_cloudmap(cloudmap):
+    return cloudmap
+
+
+@load_cloudmap
+def get_existed_file_names_on_cloudmap(cloudmap):
     """
     Get all the file names of pushed files for naming pulled files
     it cannot use `set` to deduplicate for smaller size
     since a single file has multiple uploads means it has changed a lot
     so when pulling we will have all the changed version of that file with file name = file_name + msg_id + time
     """
-    cloudmap = get_cloudmap()
     return [os.path.basename(cloudmap[msg_id]["file_path"]) for msg_id in cloudmap]
 
 
-def get_existed_checksums():
+@load_cloudmap
+def get_existed_checksums(cloudmap):
     """
     Get all the checksums of pushed files for checking if a file is changed or not
     if it doesnt change then no need to push again
     a lot of files may have the same content so use `set` to deduplicate for faster checking
     """
-    cloudmap = get_cloudmap()
     return set([cloudmap[msg_id]["checksum"] for msg_id in cloudmap])
+
+
+@load_cloudmap
+def get_existed_file_paths_on_cloudmap(cloudmap):
+    # like get_existed_checksums
+    return set([cloudmap[msg_id]["file_path"] for msg_id in cloudmap])
 
 
 def clean_prepared_data():

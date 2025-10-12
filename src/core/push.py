@@ -223,7 +223,6 @@ def _prepare_pushed_data(
 
 
 async def push_data(client: TelegramClient, symmetric_key, config: Config):
-    loop = asyncio.get_running_loop()
     new_cloudmap = get_cloudmap()
     cloud_channel = await client.get_entity(get_cloud_channel_id())
 
@@ -237,7 +236,7 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
                 is_single_file=True,
             )
             new_cloudmap[result["msg_id"]] = result["attrib"]
-            await loop.run_in_executor(None, update_cloudmap, new_cloudmap)
+            await update_cloudmap(new_cloudmap)
             print(
                 f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL}   {result['attrib']['file_path']}"
             )

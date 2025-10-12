@@ -91,15 +91,15 @@ async def _download_big_file(
             except ConnectionError:
                 return
 
-    loop = asyncio.get_running_loop()
-
     file_info_path = await download(msg_id)
     if file_info_path is None:
         # file_info_path is None when pressing Ctrl+C to stop the program
         # which cancels all the coros -> client.download_file coro will raise ConnectionError
         # after that the worker download will return to stop -> None
         return
-    file_parts = await loop.run_in_executor(None, read_file, file_info_path, "r", True)
+    file_parts = await asyncio.get_running_loop().run_in_executor(
+        None, read_file, file_info_path, "r", True
+    )
     os.remove(file_info_path)
 
     tasks = [download(file_parts[file_part]) for file_part in file_parts]
