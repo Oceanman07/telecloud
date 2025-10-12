@@ -1,7 +1,8 @@
 import asyncio
+import threading
 import hashlib
 import random
-from typing import Optional
+
 
 from .constants import NONCE_LENGTH, TAG_LENGTH, CHUNK_LENGTH_FOR_LARGE_FILE
 
@@ -32,21 +33,29 @@ def write_file(file_path, content, mode="wb"):
         f.write(content)
 
 
-def get_checksum(
-    file_path,
-    loop: Optional[asyncio.AbstractEventLoop] = None,
-    future: Optional[asyncio.Future] = None,
-    is_holder=True,
-):
+def get_checksum(file_path):
     checksum = hashlib.sha256()
     for chunk in read_file_in_chunk(file_path):
         checksum.update(chunk)
+    return checksum.hexdigest()
 
-    if not is_holder:
-        return checksum.hexdigest()
 
-    if not future.done():
-        loop.call_soon_threadsafe(future.set_result, checksum.hexdigest())
+async def async_get_checksum(file_path):
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
+
+    def hash():
+        checksum = hashlib.sha256()
+        for chunk in read_file_in_chunk(file_path):
+            checksum.update(chunk)
+
+        if not future.done():
+            loop.call_soon_threadsafe(future.set_result, checksum.hexdigest())
+
+    hashing_thread = threading.Thread(target=hash, daemon=True)
+    hashing_thread.start()
+
+    return await future
 
 
 def convert_bytes_to_int(bytes_num):

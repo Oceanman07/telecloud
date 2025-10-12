@@ -12,6 +12,7 @@ from ..protector import encrypt_file
 from ..constants import CHUNK_LENGTH_FOR_LARGE_FILE, STORED_PREPARED_FILE_PATHS
 from ..utils import (
     get_checksum,
+    async_get_checksum,
     get_random_number,
     write_file,
     read_file_in_chunk,
@@ -138,23 +139,12 @@ async def _upload_file(
         print(
             f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushing{Style.RESET_ALL} {file_path}"
         )
-
-        loop = asyncio.get_running_loop()
-
-        # hash file content -> get checksum
-        checksum_value_future = loop.create_future()
-        hash_checksum_thread = threading.Thread(
-            target=get_checksum, args=(file_path, loop, checksum_value_future)
-        )
-        hash_checksum_thread.start()
-
         # checksum is now the name of encrypted file -> prevent long file name from reaching over 255 chars
         # adding random number to prevent checksum name conflict > two different files could have the same data
-        checksum = await checksum_value_future
+        checksum = await async_get_checksum(file_path)
         encrypted_file_path = os.path.join(
             STORED_PREPARED_FILE_PATHS, get_random_number() + "_" + checksum
         )
-
         # encrypt file before uploading to cloud
         await encrypt_file(symmetric_key, file_path, encrypted_file_path)
 
@@ -218,7 +208,7 @@ def _prepare_pushed_data(
                 file_paths.append(file_path)
                 continue
 
-            if get_checksum(file_path, None, None, is_holder=False) not in checksums:
+            if get_checksum(file_path) not in checksums:
                 file_paths.append(file_path)
                 continue
 
