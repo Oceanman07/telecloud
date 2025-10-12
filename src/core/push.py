@@ -9,7 +9,7 @@ from telethon import TelegramClient
 
 from ..config import Config
 from ..protector import encrypt_file
-from ..constants import FILE_PART_LENGTH_FOR_LARGE_FILE, STORED_PREPARED_FILE_PATHS
+from ..constants import CHUNK_LENGTH_FOR_LARGE_FILE, STORED_PREPARED_FILE_PATHS
 from ..utils import (
     get_checksum,
     get_random_number,
@@ -17,9 +17,9 @@ from ..utils import (
     read_file_in_chunk,
 )
 from ..cloudmapmanager import (
-    get_cloud_channel_id,
     get_cloudmap,
     update_cloudmap,
+    get_cloud_channel_id,
     get_existed_checksums,
     get_existed_file_paths_on_cloudmap,
 )
@@ -156,25 +156,11 @@ async def _upload_file(
         )
 
         # encrypt file before uploading to cloud
-        encryption_process_future = loop.create_future()
-        file_encryption_thread = threading.Thread(
-            target=encrypt_file,
-            args=(
-                symmetric_key,
-                file_path,
-                encrypted_file_path,
-                loop,
-                encryption_process_future,
-            ),
-            daemon=True,
-        )
-        file_encryption_thread.start()
-
-        await encryption_process_future
+        await encrypt_file(symmetric_key, file_path, encrypted_file_path)
 
         try:
             file_size = os.path.getsize(file_path)
-            if file_size < FILE_PART_LENGTH_FOR_LARGE_FILE:
+            if file_size < CHUNK_LENGTH_FOR_LARGE_FILE:
                 msg_id = await _upload_small_file(
                     client, cloud_channel, encrypted_file_path
                 )

@@ -12,7 +12,7 @@ from telethon.tl.types import InputChatUploadedPhoto
 
 from .aes import generate_key
 from .logo import LOGO
-from .protector import encrypt_string_session
+from .protector import encrypt_file
 from .utils import read_file, write_file
 from .constants import (
     CONFIG_PATH,
@@ -91,7 +91,7 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
 
     symmetric_key = generate_key(password, salt)
     write_file(STRING_SESSION_PATH, session, mode="w")
-    await encrypt_string_session(symmetric_key)
+    await encrypt_file(symmetric_key, STRING_SESSION_PATH, STRING_SESSION_PATH)
 
     # cloudmap stores file info -> msg_id, checksum, file_path, file_size, time
     cloudmap = {}

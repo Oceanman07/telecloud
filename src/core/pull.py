@@ -16,9 +16,9 @@ from ..cloudmapmanager import (
     get_existed_file_names_on_cloudmap,
 )
 from ..constants import (
-    FILE_PART_LENGTH_FOR_LARGE_FILE,
     NAMING_FILE_MAX_LENGTH,
     STORED_PREPARED_FILE_PATHS,
+    CHUNK_LENGTH_FOR_LARGE_FILE,
 )
 
 # 8 upload/retrieve files at the time
@@ -114,9 +114,8 @@ async def _download_file(
         print(
             f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulling{Style.RESET_ALL} {file['saved_path']}"
         )
-
         try:
-            if file["file_size"] < FILE_PART_LENGTH_FOR_LARGE_FILE:
+            if file["file_size"] < CHUNK_LENGTH_FOR_LARGE_FILE:
                 file_from_cloud = await _download_small_file(
                     client, cloud_channel, int(file["msg_id"])
                 )
@@ -130,17 +129,7 @@ async def _download_file(
         except ConnectionError:
             return
 
-        loop = asyncio.get_running_loop()
-        future = loop.create_future()
-
-        file_decryption_thread = threading.Thread(
-            target=decrypt_file,
-            args=(symmetric_key, file_from_cloud, file["saved_path"], loop, future),
-            daemon=True,
-        )
-        file_decryption_thread.start()
-
-        await future
+        await decrypt_file(symmetric_key, file_from_cloud, file["saved_path"])
         os.remove(file_from_cloud)
 
         return file["saved_path"]
