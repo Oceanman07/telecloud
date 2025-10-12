@@ -1,4 +1,5 @@
 import os
+import asyncio
 import json
 import base64
 import io
@@ -95,7 +96,7 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
 
     # cloudmap stores file info -> msg_id, checksum, file_path, file_size, time
     cloudmap = {}
-    write_file(CLOUDMAP_PATH, json.dumps(cloudmap), mode="w")
+    write_file(CLOUDMAP_PATH, cloudmap, mode="w", serialize=True)
 
     # create cloud channel to store files
     channel_id = await _create_channel(client)
@@ -113,7 +114,7 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
         "pulled_directory": default_pulled_dir,
         "is_auto_fill_password": {"status": False, "value": None},
     }
-    write_file(CONFIG_PATH, json.dumps(config), mode="w")
+    write_file(CONFIG_PATH, config, mode="w", serialize=True)
 
     await _set_channel_photo(client)
 
@@ -142,36 +143,38 @@ async def _create_channel(client: TelegramClient):
     return channel.chats[0].id
 
 
-def update_cloudmap(cloudmap):
-    write_file(CLOUDMAP_PATH, json.dumps(cloudmap, ensure_ascii=False), mode="w")
+async def update_cloudmap(cloudmap):
+    await asyncio.get_running_loop().run_in_executor(
+        None, write_file, CLOUDMAP_PATH, cloudmap, "w", True
+    )
 
 
 def get_cloudmap():
-    return json.loads(read_file(CLOUDMAP_PATH))
+    return read_file(CLOUDMAP_PATH, mode="r", deserialize=True)
 
 
 def get_api_id():
-    config = json.loads(read_file(CONFIG_PATH))
+    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
     return config["api_id"]
 
 
 def get_api_hash():
-    config = json.loads(read_file(CONFIG_PATH))
+    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
     return config["api_hash"]
 
 
 def get_cloud_channel_id():
-    config = json.loads(read_file(CONFIG_PATH))
+    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
     return config["cloud_channel_id"]
 
 
 def get_salt_from_cloudmap():
-    config = json.loads(read_file(CONFIG_PATH))
+    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
     return bytes.fromhex(config["salt"])
 
 
 def get_default_pulled_directory():
-    config = json.loads(read_file(CONFIG_PATH))
+    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
     return config["pulled_directory"]
 
 

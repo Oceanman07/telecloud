@@ -19,8 +19,6 @@ def list_pushed_files(config: Config):
             continue
         if any(file_name.endswith(suffix) for suffix in config.excluded_file_suffixes):
             continue
-        if not file_size <= config.max_size:
-            continue
         if not filter_name_func(file_name):
             continue
 

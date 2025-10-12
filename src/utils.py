@@ -1,8 +1,8 @@
 import asyncio
 import threading
+import json
 import hashlib
 import random
-
 
 from .constants import NONCE_LENGTH, TAG_LENGTH, CHUNK_LENGTH_FOR_LARGE_FILE
 
@@ -11,9 +11,12 @@ def get_random_number():
     return str(random.randint(1000000000, 9999999999))
 
 
-def read_file(file_path, mode="rb"):
+def read_file(file_path, mode="rb", deserialize=False):
     with open(file_path, mode=mode) as f:
-        return f.read()
+        if deserialize:
+            return json.load(f)
+        else:
+            return f.read()
 
 
 def read_file_in_chunk(file_path, is_encrypted=False):
@@ -28,9 +31,12 @@ def read_file_in_chunk(file_path, is_encrypted=False):
                 yield chunk
 
 
-def write_file(file_path, content, mode="wb"):
+def write_file(file_path, content, mode="wb", serialize=False):
     with open(file_path, mode=mode) as f:
-        f.write(content)
+        if serialize:
+            json.dump(content, f, ensure_ascii=False)
+        else:
+            f.write(content)
 
 
 def get_checksum(file_path):

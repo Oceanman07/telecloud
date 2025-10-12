@@ -35,30 +35,37 @@ async def _download_small_file(client: TelegramClient, cloud_channel, msg_id):
     return file_from_cloud
 
 
-def _merge_file_parts(
-    file_parts, loop: asyncio.AbstractEventLoop, future: asyncio.Future
-):
-    any_file_part_name = os.path.basename(file_parts[0])
-    any_file_part_name_without_num = any_file_part_name[
-        any_file_part_name.index("_") + 1 :
-    ]
-    merged_file = os.path.join(
-        STORED_PREPARED_FILE_PATHS,
-        any_file_part_name_without_num,
-    )
+async def _merge_file_parts(file_parts):
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
 
-    with open(merged_file, "wb") as f:
-        for i in range(1, len(file_parts) + 1):
-            file_part = os.path.join(
-                STORED_PREPARED_FILE_PATHS,
-                str(i) + "_" + any_file_part_name_without_num,
-            )
-            for encrypted_chunk in read_file_in_chunk(file_part, is_encrypted=True):
-                f.write(encrypted_chunk)
-            os.remove(file_part)
+    def merge():
+        any_file_part_name = os.path.basename(file_parts[0])
+        any_file_part_name_without_num = any_file_part_name[
+            any_file_part_name.index("_") + 1 :
+        ]
+        merged_file = os.path.join(
+            STORED_PREPARED_FILE_PATHS,
+            any_file_part_name_without_num,
+        )
 
-    if not future.done():
-        loop.call_soon_threadsafe(future.set_result, merged_file)
+        with open(merged_file, "wb") as f:
+            for i in range(1, len(file_parts) + 1):
+                file_part = os.path.join(
+                    STORED_PREPARED_FILE_PATHS,
+                    str(i) + "_" + any_file_part_name_without_num,
+                )
+                for encrypted_chunk in read_file_in_chunk(file_part, is_encrypted=True):
+                    f.write(encrypted_chunk)
+                os.remove(file_part)
+
+        if not future.done():
+            loop.call_soon_threadsafe(future.set_result, merged_file)
+
+    merging_thread = threading.Thread(target=merge, daemon=True)
+    merging_thread.start()
+
+    return await future
 
 
 async def _download_big_file(
@@ -87,8 +94,7 @@ async def _download_big_file(
     loop = asyncio.get_running_loop()
 
     file_info_path = await download(msg_id)
-    raw_file_info = await loop.run_in_executor(None, read_file, file_info_path, "r")
-    file_parts = json.loads(raw_file_info)
+    file_parts = await loop.run_in_executor(None, read_file, file_info_path, "r", True)
     os.remove(file_info_path)
 
     tasks = [download(file_parts[file_part]) for file_part in file_parts]
@@ -97,14 +103,7 @@ async def _download_big_file(
         downloaded_file_part = await task
         downloaded_file_parts.append(downloaded_file_part)
 
-    merged_file_value_future = loop.create_future()
-    merge_file_parts_thread = threading.Thread(
-        target=_merge_file_parts,
-        args=(downloaded_file_parts, loop, merged_file_value_future),
-    )
-    merge_file_parts_thread.start()
-
-    return await merged_file_value_future
+    return await _merge_file_parts(downloaded_file_parts)
 
 
 async def _download_file(
