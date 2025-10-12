@@ -9,7 +9,12 @@ from colorama import Fore, Style
 
 from .config import Config
 from .constants import CONFIG_PATH
-from .cloudmapmanager import get_api_id, get_api_hash, get_salt_from_cloudmap
+from .cloudmapmanager import (
+    get_api_id,
+    get_api_hash,
+    get_default_pulled_directory,
+    get_salt_from_cloudmap,
+)
 
 
 def _parse_args():
@@ -113,26 +118,51 @@ def load_config():
         )
         api_id = int(input("Please enter your app api_id: "))
         api_hash = input("Please enter your app api_hash: ")
+        print(
+            "[*] Your phone number must be (telephone country code)+(your phone number)\n"
+            "For example: 840123456789 (84 is a coutry code and the rest is your phone)"
+        )
     else:
         api_id = get_api_id()
         api_hash = get_api_hash()
 
     args = _parse_args()
 
-    # require the file/dir path for pushing and pulling
-    if args.action in ("push", "pull") and not args.target_path:
-        print("Usage: tc push/pull [target_path]")
+    if sys.argv[1] not in ("push", "pull", "config", "list"):
+        print("usage: tc push/pull [Optional args] [target_path]")
         exit()
 
-    target_path = (
-        os.path.abspath(args.target_path) if args.action in ("push", "pull") else "None"
-    )
-    # pushing requires an existing file/dir path
-    if args.action == "push" and not os.path.exists(target_path):
-        print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Path not found"
-        )
-        exit()
+    if args.action == "push":
+        if not args.target_path:
+            print(
+                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Pushing requires an existing path{Style.RESET_ALL}"
+            )
+            exit()
+
+        absolute_path = os.path.abspath(args.target_path)
+        # pushing requires an existing file/dir path
+        if not os.path.exists(absolute_path):
+            print(
+                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Path not found{Style.RESET_ALL}"
+            )
+            exit()
+
+        target_path = {"is_file": os.path.isfile(absolute_path), "value": absolute_path}
+
+    elif args.action == "pull":
+        if not args.target_path:
+            target_path = {"is_file": False, "value": get_default_pulled_directory()}
+            os.makedirs(get_default_pulled_directory(), exist_ok=True)
+        else:
+            absolute_directory_path = os.path.abspath(args.target_path)
+            if os.path.isdir(absolute_directory_path):
+                target_path = {"is_file": False, "value": absolute_directory_path}
+            else:
+                target_path = {"is_file": True, "value": absolute_directory_path}
+
+    else:
+        # only pushing/and pulling command use target_path -> they do not touch it then target_path can be anything
+        target_path = {}
 
     # check if the max_size arg is valid or not
     if (

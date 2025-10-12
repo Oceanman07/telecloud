@@ -38,7 +38,7 @@ async def _upload_small_file(client: TelegramClient, cloud_channel, file_path):
 
 def _split_big_file(file_path, loop: asyncio.AbstractEventLoop, future: asyncio.Future):
     file_parts = []
-    max_split_times = 7
+    max_split_times = 1
     split_count = 0
     part_num = 1
     written_size = 0
@@ -251,13 +251,13 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
     new_cloudmap = get_cloudmap()
     cloud_channel = await client.get_entity(get_cloud_channel_id())
 
-    if os.path.isfile(config.target_path):
+    if config.target_path["is_file"]:
         try:
             result = await _upload_file(
                 client,
                 cloud_channel,
                 symmetric_key,
-                config.target_path,
+                config.target_path["value"],
                 is_single_file=True,
             )
             new_cloudmap[result["msg_id"]] = result["attrib"]
@@ -270,7 +270,7 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
 
     else:
         prepared_data = _prepare_pushed_data(
-            root_directory=config.target_path,
+            root_directory=config.target_path["value"],
             excluded_dirs=config.excluded_dirs,
             excluded_files=config.excluded_files,
             excluded_file_suffixes=config.excluded_file_suffixes,

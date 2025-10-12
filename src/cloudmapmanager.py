@@ -34,9 +34,46 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
     # encrypted files before uploading or decrypting will be stored here
     os.makedirs(STORED_PREPARED_FILE_PATHS, exist_ok=True)
 
-    # setup password
+    # configure default pulled directory
+    home_dir = os.path.expanduser("~")
+    pulled_dir_in_desktop = os.path.join(
+        home_dir, os.path.join("Desktop", "TeleCloudFiles")
+    )
+    pulled_dir_in_documents = os.path.join(
+        home_dir, os.path.join("Documents", "TeleCloudFiles")
+    )
+    pulled_dir_in_downloads = os.path.join(
+        home_dir, os.path.join("Downloads", "TeleCloudFiles")
+    )
     print(
-        f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Setup password:{Style.RESET_ALL}"
+        f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Configure your default pulled directory{Style.RESET_ALL}\n"
+        f"Your files will be downloaded and stored here if not provided a specific directory when pulling all files"
+    )
+    print(
+        f"[1] {pulled_dir_in_desktop}\n"
+        f"[2] {pulled_dir_in_documents}\n"
+        f"[3] {pulled_dir_in_downloads}"
+    )
+
+    default_pulled_dir = pulled_dir_in_desktop  # default
+    while True:
+        user_choice = input("Your choice 1/2/3: ")
+        if user_choice not in ("1", "2", "3"):
+            continue
+
+        if user_choice == "1":
+            pass  # desktop is alread the default choice
+        elif user_choice == "2":
+            default_pulled_dir = pulled_dir_in_documents
+        elif user_choice == "3":
+            default_pulled_dir = pulled_dir_in_downloads
+
+        os.makedirs(default_pulled_dir, exist_ok=True)
+        break
+
+    # configure password
+    print(
+        f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Configure your password{Style.RESET_ALL}"
     )
     print(
         f"Remember! {Style.BRIGHT}One password{Style.RESET_ALL} to rule them all, {Style.BRIGHT}One Password{Style.RESET_ALL} to find them, {Style.BRIGHT}One Password{Style.RESET_ALL} to bring them all, and in case you forget you might {Style.BRIGHT}lose{Style.RESET_ALL} them all. So, choose wisely!"
@@ -72,7 +109,8 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
         "cloud_channel_id": int(
             "-100" + str(channel_id)
         ),  # PeerChannel → -100 + channel ID
-        "salt": base64.b64encode(salt).decode(),
+        "salt": salt.hex(),
+        "pulled_directory": default_pulled_dir,
         "is_auto_fill_password": {"status": False, "value": None},
     }
     write_file(CONFIG_PATH, json.dumps(config), mode="w")
@@ -112,16 +150,6 @@ def get_cloudmap():
     return json.loads(read_file(CLOUDMAP_PATH))
 
 
-def get_cloud_channel_id():
-    config = json.loads(read_file(CONFIG_PATH))
-    return config["cloud_channel_id"]
-
-
-def get_salt_from_cloudmap():
-    config = json.loads(read_file(CONFIG_PATH))
-    return base64.b64decode(config["salt"])
-
-
 def get_api_id():
     config = json.loads(read_file(CONFIG_PATH))
     return config["api_id"]
@@ -130,6 +158,21 @@ def get_api_id():
 def get_api_hash():
     config = json.loads(read_file(CONFIG_PATH))
     return config["api_hash"]
+
+
+def get_cloud_channel_id():
+    config = json.loads(read_file(CONFIG_PATH))
+    return config["cloud_channel_id"]
+
+
+def get_salt_from_cloudmap():
+    config = json.loads(read_file(CONFIG_PATH))
+    return bytes.fromhex(config["salt"])
+
+
+def get_default_pulled_directory():
+    config = json.loads(read_file(CONFIG_PATH))
+    return config["pulled_directory"]
 
 
 def get_existed_file_paths_on_cloudmap():
