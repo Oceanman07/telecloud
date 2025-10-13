@@ -150,9 +150,14 @@ async def update_cloudmap(cloudmap):
 
 
 def load_config(func):
-    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+    config = None
+    if os.path.exists(CONFIG_PATH):
+        config = read_file(CONFIG_PATH, mode="r", deserialize=True)
 
     def load():
+        nonlocal config
+        if config is None:
+            config = read_file(CONFIG_PATH, mode="r", deserialize=True)
         return func(config)
 
     return load
@@ -184,9 +189,14 @@ def get_default_pulled_directory(config):
 
 
 def load_cloudmap(func):
-    cloudmap = read_file(CLOUDMAP_PATH, mode="r", deserialize=True)
+    cloudmap = None
+    if os.path.exists(CLOUDMAP_PATH):
+        cloudmap = read_file(CLOUDMAP_PATH, mode="r", deserialize=True)
 
     def load():
+        nonlocal cloudmap
+        if cloudmap is None:
+            cloudmap = read_file(CLOUDMAP_PATH, mode="r", deserialize=True)
         return func(cloudmap)
 
     return load
