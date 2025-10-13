@@ -1,10 +1,9 @@
-import json
 import os
 import asyncio
 import threading
 import time
 
-from colorama import Style, Fore
+from colorama import Fore
 from telethon import TelegramClient
 
 from ..config import Config
@@ -116,7 +115,7 @@ async def _download_file(
 ):
     async with SEMAPHORE:
         print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulling{Style.RESET_ALL} {file['saved_path']}"
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.YELLOW} Pulling{Fore.RESET} {file['saved_path']}"
         )
         try:
             if file["file_size"] < CHUNK_LENGTH_FOR_LARGE_FILE:
@@ -202,14 +201,14 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
                         client, cloud_channel, symmetric_key, file, is_single_file=True
                     )
                     print(
-                        f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL}   {result}"
+                        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Fore.RESET}   {result}"
                     )
                     return
                 except asyncio.exceptions.CancelledError:
                     return
         # file name not found
         print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Pushed file not found"
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET}  Pushed file not found"
         )
 
     else:
@@ -235,6 +234,6 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
                 return
 
             count += 1
-            print(
-                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result}"
-            )
+            # print(
+            #     f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result}"
+            # )

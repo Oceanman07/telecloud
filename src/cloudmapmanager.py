@@ -1,6 +1,5 @@
 import os
 import asyncio
-import json
 import base64
 import io
 import time
@@ -47,7 +46,7 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
         home_dir, os.path.join("Downloads", "TeleCloudFiles")
     )
     print(
-        f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Configure your default pulled directory{Style.RESET_ALL}\n"
+        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Configure your default pulled directory{Fore.RESET}\n"
         f"Your files will be downloaded and stored here if not provided a specific directory when pulling all files"
     )
     print(
@@ -74,7 +73,7 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
 
     # configure password
     print(
-        f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Configure your password{Style.RESET_ALL}"
+        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Configure your password for encrypting/decrypting files{Fore.RESET}\n"
     )
     print(
         f"Remember! {Style.BRIGHT}One password{Style.RESET_ALL} to rule them all, {Style.BRIGHT}One Password{Style.RESET_ALL} to find them, {Style.BRIGHT}One Password{Style.RESET_ALL} to bring them all, and in case you forget you might {Style.BRIGHT}lose{Style.RESET_ALL} them all. So, choose wisely!"
@@ -83,7 +82,7 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
     repeated = getpass("Confirm:\n>: ")
     if password != repeated:
         print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Password does not match{Style.RESET_ALL}"
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET}   Password does not match"
         )
         exit()
 
@@ -100,9 +99,7 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
 
     # create cloud channel to store files
     channel_id = await _create_channel(client)
-    print(
-        f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Style.RESET_ALL} Created cloud channel with ID:{channel_id}"
-    )
+    print(f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Cloud channel created")
 
     config = {
         "api_id": api_id,

@@ -5,7 +5,7 @@ import time
 import argparse
 from getpass import getpass
 
-from colorama import Fore, Style
+from colorama import Fore
 
 from .config import Config
 from .constants import CONFIG_PATH
@@ -114,7 +114,7 @@ def _parse_args():
 def load_config():
     if not os.path.exists(CONFIG_PATH):
         print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Setup your TeleCloud{Style.RESET_ALL}"
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Setup your TeleCloud{Fore.RESET}"
         )
         api_id = int(input("Please enter your app api_id: "))
         api_hash = input("Please enter your app api_hash: ")
@@ -135,7 +135,7 @@ def load_config():
     if args.action == "push":
         if not args.target_path:
             print(
-                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Pushing requires an existing path{Style.RESET_ALL}"
+                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET}   Pushing requires an existing path"
             )
             exit()
 
@@ -143,7 +143,7 @@ def load_config():
         # pushing requires an existing file/dir path
         if not os.path.exists(absolute_path):
             print(
-                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - Path not found{Style.RESET_ALL}"
+                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Path not found"
             )
             exit()
 

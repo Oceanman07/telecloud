@@ -3,7 +3,7 @@ import asyncio
 import threading
 import time
 
-from colorama import Style, Fore
+from colorama import Fore
 from telethon import TelegramClient
 
 from ..config import Config
@@ -137,7 +137,7 @@ async def _upload_file(
 ):
     async with SEMAPHORE:
         print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushing{Style.RESET_ALL} {file_path}"
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.YELLOW} Pushing{Fore.RESET} {file_path}"
         )
         # checksum is now the name of encrypted file -> prevent long file name from reaching over 255 chars
         # adding random number to prevent checksum name conflict > two different files could have the same data
@@ -213,7 +213,7 @@ def _prepare_pushed_data(
                 continue
 
             print(
-                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Remained{Style.RESET_ALL}   {file_path}"
+                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Remained{Fore.RESET}   {file_path}"
             )
 
         if not is_recursive:
@@ -238,7 +238,7 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
             new_cloudmap[result["msg_id"]] = result["attrib"]
             await update_cloudmap(new_cloudmap)
             print(
-                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL}   {result['attrib']['file_path']}"
+                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Fore.RESET}   {result['attrib']['file_path']}"
             )
         except asyncio.exceptions.CancelledError:
             return
@@ -272,5 +272,5 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
 
             count += 1
             print(
-                f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Style.RESET_ALL} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}"
+                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}"
             )
