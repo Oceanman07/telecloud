@@ -93,7 +93,7 @@ async def _download_big_file(
     file_info_path = await download(msg_id)
     if file_info_path is None:
         # file_info_path is None when pressing Ctrl+C to stop the program
-        # which cancels all the coros -> client.download_file coro will raise ConnectionError
+        # which cancels all the tasks -> client.download_file coro will raise ConnectionError
         # after that the worker download will return to stop -> None
         return
     file_parts = await asyncio.get_running_loop().run_in_executor(
@@ -130,6 +130,16 @@ async def _download_file(
                     is_single_file=is_single_file,
                 )
         except ConnectionError:
+            # This exception raises when pressing Ctrl+C to stop the program
+            # which cancels all the tasks -> ConnectionError will be raised in client.download_file
+            # sleep for 0.1 seconds just to hit an await cause if this coro does not hit in here
+            # -> it will skip the return statement and move on decrypt_file (which will continue to process)
+            # basically if we just return without letting the coro hit an await
+            # -> the cancellation will stay pending (it does not know its already cancelled until it hit an await)
+            # also the return statement is not necessary at all
+            # just to make it less confused whenever come back to read code
+            # -> its like Ah! return to stop the function (instead of why sleep for 0.1 after catching error then decrypt???)
+            await asyncio.sleep(0.1)
             return
 
         await decrypt_file(symmetric_key, file_from_cloud, file["saved_path"])
@@ -234,6 +244,6 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
                 return
 
             count += 1
-            # print(
-            #     f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result}"
-            # )
+            print(
+                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result}"
+            )

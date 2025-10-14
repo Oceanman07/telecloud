@@ -162,6 +162,17 @@ async def _upload_file(
                     is_single_file=is_single_file,
                 )
         except ConnectionError:
+            # This exception raises when pressing Ctrl+C to stop the program
+            # which cancels all the tasks -> ConnectionError will be raised in client.upload_file
+            # sleep for 0.1 seconds just to hit an await
+            # basically if we just return without letting the coro hit an await
+            # -> the cancellation will stay pending (it does not know its already cancelled until it hit an await)
+            # though in this case, we do not even need to await sleep()
+            # since at the end it just returns a dict (not doing work like download_file) -> but still a good practice
+            # also the return statement is not necessary at all
+            # just to make it less confused whenever come back to read code
+            # -> its like Ah! return to stop the function (instead of why sleep for 0.1 after catching error then return the info???)
+            await asyncio.sleep(0.1)
             return
 
         return {

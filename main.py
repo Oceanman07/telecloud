@@ -54,8 +54,8 @@ async def main():
 
         except KeyboardInterrupt:
             loop = asyncio.get_running_loop()
-            for coro in asyncio.all_tasks(loop):
-                coro.cancel()
+            for task in asyncio.all_tasks(loop):
+                task.cancel()
 
     clean_prepared_data()
 
