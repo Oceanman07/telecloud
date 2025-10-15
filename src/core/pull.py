@@ -157,6 +157,7 @@ def _prepare_pulled_data(
 ):
     cloudmap = get_cloudmap()
     existed_file_names = get_existed_file_names_on_cloudmap()
+    pulled_files = os.listdir(saved_directory)
 
     saved_paths = []
     for msg_id in cloudmap:
@@ -184,6 +185,11 @@ def _prepare_pulled_data(
                 file_name = base[: -(len(differentor) + len(ext))] + differentor + ext
             else:
                 file_name = new_file_name
+
+        # Check if the file is already pulled at the end
+        # since we need the name with msg_id + time of multiple pushed file
+        if file_name in pulled_files:
+            continue
 
         saved_path = os.path.join(saved_directory, file_name)
         saved_paths.append(
