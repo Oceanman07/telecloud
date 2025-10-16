@@ -8,7 +8,6 @@ class Config:
         self,
         api_id,
         api_hash,
-        salt,
         action,
         target_path,
         password,
@@ -22,7 +21,6 @@ class Config:
     ):
         self.__api_id = api_id
         self.__api_hash = api_hash
-        self.__salt = salt
         self.__action = action
         self.__target_path = target_path
         self.__password = password
@@ -41,10 +39,6 @@ class Config:
     @property
     def api_hash(self):
         return self.__api_hash
-
-    @property
-    def salt(self):
-        return self.__salt
 
     @property
     def action(self):

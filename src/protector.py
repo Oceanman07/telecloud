@@ -4,9 +4,11 @@ import threading
 
 from telethon.sessions import StringSession
 
-from . import aes
+from . import aes, rsa
+from .cloudmapmanager import get_encrypted_symmetric_key
 from .utils import read_file, read_file_in_chunk, write_file
 from .constants import (
+    ENCRYPTED_PRIVATE_KEY_PATH,
     STRING_SESSION_PATH,
     NONCE_LENGTH,
     TAG_LENGTH,
@@ -86,17 +88,28 @@ async def decrypt_file(key, src_path, dns_path):
 
 async def load_string_session(symmetric_key):
     if not os.path.exists(STRING_SESSION_PATH):
-        return {"success": True, "string_session": StringSession()}
+        return StringSession()
 
-    result = await decrypt_file(symmetric_key, STRING_SESSION_PATH, STRING_SESSION_PATH)
-    if not result["success"]:
-        return result
+    encrypted_session = read_file(STRING_SESSION_PATH)
+    session = aes.decrypt(symmetric_key, encrypted_session)
 
-    string_session = await asyncio.get_running_loop().run_in_executor(
-        None, read_file, STRING_SESSION_PATH, "r"
-    )
-    # # encrypte the string session file after reading in memory
-    await encrypt_file(symmetric_key, STRING_SESSION_PATH, STRING_SESSION_PATH)
+    return StringSession(session.decode())
 
-    result["string_session"] = StringSession(string_session)
-    return result
+
+async def load_symmetric_key(password):
+    if not os.path.exists(ENCRYPTED_PRIVATE_KEY_PATH):
+        return {"success": True, "symmetric_key": None}
+
+    with open(ENCRYPTED_PRIVATE_KEY_PATH, "rb") as f:
+        salt = f.read(32)
+        encrypted_private_key = f.read()
+
+    symmetric_key_for_private_key = aes.generate_key(password, salt)
+    try:
+        private_key = aes.decrypt(symmetric_key_for_private_key, encrypted_private_key)
+    except ValueError:
+        return {"success": False, "error": "Invalid password"}
+
+    encrypted_main_symmetric_key = bytes.fromhex(get_encrypted_symmetric_key())
+    main_symmetric_key = rsa.decrypt(private_key, encrypted_main_symmetric_key)
+    return {"success": True, "symmetric_key": main_symmetric_key}

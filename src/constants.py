@@ -1,11 +1,26 @@
 import os
 
-STORED_CLOUDMAP_PATHS = os.path.join(os.path.expanduser("~"), ".telecloud")
+_HOME_DIR = os.path.expanduser("~")
+
+PULLED_DIR_IN_DESKTOP = os.path.join(
+    _HOME_DIR, os.path.join("Desktop", "TeleCloudFiles")
+)
+PULLED_DIR_IN_DOCUMENTS = os.path.join(
+    _HOME_DIR, os.path.join("Documents", "TeleCloudFiles")
+)
+PULLED_DIR_IN_DOWNLOADS = os.path.join(
+    _HOME_DIR, os.path.join("Downloads", "TeleCloudFiles")
+)
+
+STORED_CLOUDMAP_PATHS = os.path.join(_HOME_DIR, ".telecloud")
+PUBLIC_KEY_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "public_key.pem")
+ENCRYPTED_PRIVATE_KEY_PATH = os.path.join(
+    STORED_CLOUDMAP_PATHS, "encrypted_private_key.pem"
+)
 CONFIG_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "config.json")
 STORED_PREPARED_FILE_PATHS = os.path.join(STORED_CLOUDMAP_PATHS, "prepared_data")
-STRING_SESSION_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "string_session.session")
+STRING_SESSION_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "StringSession")
 CLOUDMAP_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "cloudmap.json")
-KEY_TEST_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "key_test")
 INCLUDED_CLOUDMAP_PATHS = (STORED_CLOUDMAP_PATHS, CLOUDMAP_PATH)
 
 NAMING_FILE_MAX_LENGTH = 255

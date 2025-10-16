@@ -13,7 +13,6 @@ from .cloudmapmanager import (
     get_api_id,
     get_api_hash,
     get_default_pulled_directory,
-    get_salt_from_cloudmap,
 )
 
 
@@ -173,10 +172,9 @@ def load_config():
         exit()
 
     # CONFIG_PATH does not exist means the program have not setup yet
-    # in the setup step -> the salt will be generated and the password will be asked
+    # in the setup step -> the password will be asked
     # and list command does not need password
     if not os.path.exists(CONFIG_PATH) or args.action == "list":
-        salt = b"No need yet"
         password = "No need yet"
     else:
         with open(CONFIG_PATH, "r") as f:
@@ -191,12 +189,9 @@ def load_config():
         else:
             password = getpass()
 
-        salt = get_salt_from_cloudmap()
-
     return Config(
         api_id=api_id,
         api_hash=api_hash,
-        salt=salt,
         action=args.action,
         target_path=target_path,
         password=password,
