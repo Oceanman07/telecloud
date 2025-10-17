@@ -9,6 +9,7 @@ from telethon import TelegramClient
 from telethon.tl.functions.channels import CreateChannelRequest, EditPhotoRequest
 from telethon.tl.types import InputChatUploadedPhoto
 
+from .functions import get_cloud_channel_id
 from .. import aes, rsa
 from ..logo import LOGO
 from ..utils import write_file
