@@ -143,7 +143,9 @@ async def _upload_file(
         # adding random number to prevent checksum name conflict > two different files could have the same data
         checksum = await async_get_checksum(file_path)
         encrypted_file_path = os.path.join(
-            STORED_PREPARED_FILE_PATHS, get_random_number() + "_" + checksum
+            STORED_PREPARED_FILE_PATHS,
+            # take the first 15 chars since somehow Telegram sometimes cuts the file name
+            get_random_number() + "_" + checksum[:15],
         )
         # encrypt file before uploading to cloud
         await encrypt_file(symmetric_key, file_path, encrypted_file_path)
