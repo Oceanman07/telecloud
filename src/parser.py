@@ -9,7 +9,7 @@ from colorama import Fore
 
 from .config import Config
 from .constants import CONFIG_PATH
-from .cloudmapmanager import (
+from .cloudmap.functions import (
     get_api_id,
     get_api_hash,
     get_default_pulled_directory,

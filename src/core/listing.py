@@ -1,7 +1,7 @@
 import os
 
 from ..config import Config
-from ..cloudmapmanager import get_cloudmap
+from ..cloudmap.functions import get_cloudmap
 from ..utils import convert_bytes
 
 

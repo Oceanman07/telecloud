@@ -1,5 +1,4 @@
 import os
-import asyncio
 import base64
 import io
 import time
@@ -10,10 +9,10 @@ from telethon import TelegramClient
 from telethon.tl.functions.channels import CreateChannelRequest, EditPhotoRequest
 from telethon.tl.types import InputChatUploadedPhoto
 
-from . import aes, rsa
-from .logo import LOGO
-from .utils import read_file, write_file
-from .constants import (
+from .. import aes, rsa
+from ..logo import LOGO
+from ..utils import write_file
+from ..constants import (
     ENCRYPTED_PRIVATE_KEY_PATH,
     PULLED_DIR_IN_DESKTOP,
     PULLED_DIR_IN_DOCUMENTS,
@@ -25,6 +24,10 @@ from .constants import (
     INCLUDED_CLOUDMAP_PATHS,
     STORED_PREPARED_FILE_PATHS,
 )
+
+
+def check_health_cloudmap():
+    return all(os.path.exists(path) for path in INCLUDED_CLOUDMAP_PATHS)
 
 
 def _get_default_pulled_directory():
@@ -58,9 +61,28 @@ def _get_password():
         return password
 
 
+async def _create_channel(client: TelegramClient):
+    channel = await client(
+        CreateChannelRequest(title="TeleCloud", about="Free cloud", megagroup=False)
+    )
+    return channel.chats[0].id
+
+
+async def _set_channel_photo(client: TelegramClient):
+    # This is also the very first step
+    # -> decoding doesnt need to be async since the blocking doesnt affect at all
+    file_bytes = io.BytesIO(base64.b64decode(LOGO))
+    file_bytes.name = "CloudLogoAvatar.png"
+
+    uploaded_file = await client.upload_file(file_bytes)
+    chat_photo = InputChatUploadedPhoto(uploaded_file)
+    channel = await client.get_entity(get_cloud_channel_id())
+
+    await client(EditPhotoRequest(channel, chat_photo))
+
+
 async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
-    # This step is the very first step
-    # -> write_file doesnt need to be async since the blocking doesnt affect at all
+    # This step is the very first step -> the blocking does not affect at all
 
     # the container
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
@@ -136,124 +158,3 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
 
     await _set_channel_photo(client)
     print(f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Cloud channel created")
-
-
-def check_health_cloudmap():
-    return all(os.path.exists(path) for path in INCLUDED_CLOUDMAP_PATHS)
-
-
-async def _set_channel_photo(client: TelegramClient):
-    # This is also the very first step
-    # -> decoding doesnt need to be async since the blocking doesnt affect at all
-    file_bytes = io.BytesIO(base64.b64decode(LOGO))
-    file_bytes.name = "CloudLogoAvatar.png"
-
-    uploaded_file = await client.upload_file(file_bytes)
-    chat_photo = InputChatUploadedPhoto(uploaded_file)
-    channel = await client.get_entity(get_cloud_channel_id())
-
-    await client(EditPhotoRequest(channel, chat_photo))
-
-
-async def _create_channel(client: TelegramClient):
-    channel = await client(
-        CreateChannelRequest(title="TeleCloud", about="Free cloud", megagroup=False)
-    )
-    return channel.chats[0].id
-
-
-async def update_cloudmap(cloudmap):
-    await asyncio.get_running_loop().run_in_executor(
-        None, write_file, CLOUDMAP_PATH, cloudmap, "w", True
-    )
-
-
-def load_config(func):
-    config = None
-    if os.path.exists(CONFIG_PATH):
-        config = read_file(CONFIG_PATH, mode="r", deserialize=True)
-
-    def load():
-        nonlocal config
-        if config is None:
-            config = read_file(CONFIG_PATH, mode="r", deserialize=True)
-        return func(config)
-
-    return load
-
-
-@load_config
-def get_api_id(config):
-    return config["api_id"]
-
-
-@load_config
-def get_api_hash(config):
-    return config["api_hash"]
-
-
-@load_config
-def get_cloud_channel_id(config):
-    return config["cloud_channel_id"]
-
-
-@load_config
-def get_encrypted_symmetric_key(config):
-    return config["encrypted_symmetric_key"]
-
-
-@load_config
-def get_default_pulled_directory(config):
-    return config["pulled_directory"]
-
-
-def load_cloudmap(func):
-    cloudmap = None
-    if os.path.exists(CLOUDMAP_PATH):
-        cloudmap = read_file(CLOUDMAP_PATH, mode="r", deserialize=True)
-
-    def load():
-        nonlocal cloudmap
-        if cloudmap is None:
-            cloudmap = read_file(CLOUDMAP_PATH, mode="r", deserialize=True)
-        return func(cloudmap)
-
-    return load
-
-
-@load_cloudmap
-def get_cloudmap(cloudmap):
-    return cloudmap
-
-
-@load_cloudmap
-def get_existed_file_names_on_cloudmap(cloudmap):
-    """
-    Get all the file names of pushed files for naming pulled files
-    it cannot use `set` to deduplicate for smaller size
-    since a single file has multiple uploads means it has changed a lot
-    so when pulling we will have all the changed version of that file with file name = file_name + msg_id + time
-    """
-    return [os.path.basename(cloudmap[msg_id]["file_path"]) for msg_id in cloudmap]
-
-
-@load_cloudmap
-def get_existed_checksums(cloudmap):
-    """
-    Get all the checksums of pushed files for checking if a file is changed or not
-    if it doesnt change then no need to push again
-    a lot of files may have the same content so use `set` to deduplicate for faster checking
-    """
-    return set([cloudmap[msg_id]["checksum"] for msg_id in cloudmap])
-
-
-@load_cloudmap
-def get_existed_file_paths_on_cloudmap(cloudmap):
-    # like get_existed_checksums
-    return set([cloudmap[msg_id]["file_path"] for msg_id in cloudmap])
-
-
-def clean_prepared_data():
-    for path in os.listdir(STORED_PREPARED_FILE_PATHS):
-        file_path = os.path.join(STORED_PREPARED_FILE_PATHS, path)
-        os.remove(file_path)

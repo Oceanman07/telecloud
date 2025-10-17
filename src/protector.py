@@ -5,8 +5,8 @@ import threading
 from telethon.sessions import StringSession
 
 from . import aes, rsa
-from .cloudmapmanager import get_encrypted_symmetric_key
 from .utils import read_file, read_file_in_chunk, write_file
+from .cloudmap.functions import get_encrypted_symmetric_key
 from .constants import (
     ENCRYPTED_PRIVATE_KEY_PATH,
     STRING_SESSION_PATH,
