@@ -21,20 +21,20 @@ async def main():
     config = load_config()
 
     if config.action == "config":
-        await set_config(config)
+        set_config(config)
         return
     elif config.action == "list":
         list_pushed_files(config)
         return
 
-    result = await load_symmetric_key(config.password)
+    result = load_symmetric_key(config.password)
     if not result["success"]:
         print(
             f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - {result['error']}{Style.RESET_ALL}"
         )
         return
 
-    string_session = await load_string_session(result["symmetric_key"])
+    string_session = load_string_session(result["symmetric_key"])
 
     async with TelegramClient(
         string_session, api_id=config.api_id, api_hash=config.api_hash

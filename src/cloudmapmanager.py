@@ -14,7 +14,6 @@ from . import aes, rsa
 from .logo import LOGO
 from .utils import read_file, write_file
 from .constants import (
-    PUBLIC_KEY_PATH,
     ENCRYPTED_PRIVATE_KEY_PATH,
     PULLED_DIR_IN_DESKTOP,
     PULLED_DIR_IN_DOCUMENTS,
@@ -26,6 +25,37 @@ from .constants import (
     INCLUDED_CLOUDMAP_PATHS,
     STORED_PREPARED_FILE_PATHS,
 )
+
+
+def _get_default_pulled_directory():
+    while True:
+        user_choice = input("Your choice 1/2/3: ")
+        if user_choice not in ("1", "2", "3"):
+            continue
+
+        if user_choice == "1":
+            default_pulled_dir = PULLED_DIR_IN_DESKTOP
+        elif user_choice == "2":
+            default_pulled_dir = PULLED_DIR_IN_DOCUMENTS
+        elif user_choice == "3":
+            default_pulled_dir = PULLED_DIR_IN_DOWNLOADS
+
+        os.makedirs(default_pulled_dir, exist_ok=True)
+
+        return default_pulled_dir
+
+
+def _get_password():
+    password = input(">: ")
+    while True:
+        confirm = getpass("Confirm:\n>: ")
+        if password != confirm:
+            print(
+                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET}   Password does not match"
+            )
+            continue
+
+        return password
 
 
 async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
@@ -48,21 +78,7 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
         f"[2] {PULLED_DIR_IN_DOCUMENTS}\n"
         f"[3] {PULLED_DIR_IN_DOWNLOADS}"
     )
-
-    while True:
-        user_choice = input("Your choice 1/2/3: ")
-        if user_choice not in ("1", "2", "3"):
-            continue
-
-        if user_choice == "1":
-            default_pulled_dir = PULLED_DIR_IN_DESKTOP
-        elif user_choice == "2":
-            default_pulled_dir = PULLED_DIR_IN_DOCUMENTS
-        elif user_choice == "3":
-            default_pulled_dir = PULLED_DIR_IN_DOWNLOADS
-
-        os.makedirs(default_pulled_dir, exist_ok=True)
-        break
+    default_pulled_dir = _get_default_pulled_directory()
 
     # password for encrypting/decrypting private key
     print(
@@ -71,13 +87,7 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
     print(
         f"Remember! {Style.BRIGHT}One password{Style.RESET_ALL} to rule them all, {Style.BRIGHT}One Password{Style.RESET_ALL} to find them, {Style.BRIGHT}One Password{Style.RESET_ALL} to bring them all, and in case you forget you might {Style.BRIGHT}lose{Style.RESET_ALL} them all. So, choose wisely!"
     )
-    password = input(">: ")
-    confirm = getpass("Confirm:\n>: ")
-    if password != confirm:
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET}   Password does not match"
-        )
-        exit()
+    password = _get_password()
 
     # the main symmetric key for encrypting/decrypting StringSession, files
     password_for_main_symmetric_key = os.urandom(32).hex()
@@ -112,8 +122,6 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
 
     # create cloud channel to store files
     channel_id = await _create_channel(client)
-    print(f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Cloud channel created")
-
     config = {
         "api_id": api_id,
         "api_hash": api_hash,
@@ -127,6 +135,7 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
     write_file(CONFIG_PATH, config, mode="w", serialize=True)
 
     await _set_channel_photo(client)
+    print(f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Cloud channel created")
 
 
 def check_health_cloudmap():

@@ -86,7 +86,7 @@ async def decrypt_file(key, src_path, dns_path):
     return await future
 
 
-async def load_string_session(symmetric_key):
+def load_string_session(symmetric_key):
     if not os.path.exists(STRING_SESSION_PATH):
         return StringSession()
 
@@ -96,7 +96,7 @@ async def load_string_session(symmetric_key):
     return StringSession(session.decode())
 
 
-async def load_symmetric_key(password):
+def load_symmetric_key(password):
     if not os.path.exists(ENCRYPTED_PRIVATE_KEY_PATH):
         return {"success": True, "symmetric_key": None}
 

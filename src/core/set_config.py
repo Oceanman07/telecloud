@@ -29,8 +29,8 @@ def _remove_password_from_config():
         json.dump(file_content, f)
 
 
-async def _change_password(old_password, new_password):
-    result = await load_symmetric_key(old_password)
+def _change_password(old_password, new_password):
+    result = load_symmetric_key(old_password)
     if not result["success"]:
         print(
             f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - {result['error']}{Style.RESET_ALL}"
@@ -60,11 +60,11 @@ async def _change_password(old_password, new_password):
     )
 
 
-async def set_config(config: Config):
+def set_config(config: Config):
     # when setting config -> blocking io does not matter at all
     if config.is_auto_fill_password == "true":
         _add_password_to_config(config.password)
     elif config.is_auto_fill_password == "false":
         _remove_password_from_config()
     elif config.new_password:
-        await _change_password(config.password, config.new_password)
+        _change_password(config.password, config.new_password)
