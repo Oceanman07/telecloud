@@ -11,6 +11,7 @@ class Config:
         action,
         target_path,
         password,
+        new_password,
         is_recursive,
         excluded_dirs,
         excluded_files,
@@ -24,6 +25,7 @@ class Config:
         self.__action = action
         self.__target_path = target_path
         self.__password = password
+        self.__new_password = new_password
         self.__is_recursive = is_recursive
         self.__excluded_dirs = excluded_dirs
         self.__excluded_files = excluded_files
@@ -51,6 +53,10 @@ class Config:
     @property
     def password(self):
         return self.__password
+
+    @property
+    def new_password(self):
+        return self.__new_password
 
     @property
     def is_recursive(self):

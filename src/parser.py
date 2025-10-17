@@ -101,10 +101,14 @@ def _parse_args():
     )
 
     parser.add_argument(
-        "--auto-fill-password",
+        "--autofill-password",
         dest="is_auto_fill_password",
         choices=["true", "false"],
         help="Set automatic filling the password",
+    )
+
+    parser.add_argument(
+        "--change-password", dest="new_password", help="Set a new password"
     )
 
     return parser.parse_args()
@@ -195,6 +199,7 @@ def load_config():
         action=args.action,
         target_path=target_path,
         password=password,
+        new_password=args.new_password,
         excluded_dirs=args.excluded_dirs,
         excluded_files=args.excluded_files,
         excluded_file_suffixes=args.excluded_file_suffixes,

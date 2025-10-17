@@ -103,7 +103,6 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
     encrypted_private_key = aes.encrypt(symmetric_key_for_private_key, private_key)
     write_file(ENCRYPTED_PRIVATE_KEY_PATH, salt_for_private_key)
     write_file(ENCRYPTED_PRIVATE_KEY_PATH, encrypted_private_key, mode="ab")
-    write_file(PUBLIC_KEY_PATH, public_key)
 
     encrypted_main_symmetric_key = rsa.encrypt(public_key, main_symmetric_key)
 

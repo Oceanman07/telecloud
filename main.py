@@ -21,7 +21,7 @@ async def main():
     config = load_config()
 
     if config.action == "config":
-        set_config(config)
+        await set_config(config)
         return
     elif config.action == "list":
         list_pushed_files(config)
@@ -30,7 +30,7 @@ async def main():
     result = await load_symmetric_key(config.password)
     if not result["success"]:
         print(
-            f"{Style.BRIGHT}{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Style.RESET_ALL}{Fore.RED} - {result['error']}{Style.RESET_ALL}"
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - {result['error']}{Style.RESET_ALL}"
         )
         return
 
