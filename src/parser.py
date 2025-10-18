@@ -120,20 +120,20 @@ def _parse_args():
     )
 
     parser.add_argument(
-        "--new-cloudchannel",
+        "--new-channel",
         dest="new_cloudchannel",
         action="store_true",
         help="Create a new cloud channel to store files",
     )
 
     parser.add_argument(
-        "--switch-cloudchannel",
+        "--switch-channel",
         dest="switched_cloudchannel",
         help="Switch to another cloud channel",
     )
 
     parser.add_argument(
-        "--all-cloudchannels",
+        "--all-channels",
         dest="show_all_cloudchannels",
         action="store_true",
         help="Show all cloud channels",
