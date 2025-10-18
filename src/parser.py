@@ -119,6 +119,26 @@ def _parse_args():
         help="Change new default pulled directory",
     )
 
+    parser.add_argument(
+        "--new-cloudchannel",
+        dest="new_cloudchannel",
+        action="store_true",
+        help="Create a new cloud channel to store files",
+    )
+
+    parser.add_argument(
+        "--switch-cloudchannel",
+        dest="switched_cloudchannel",
+        help="Switch to another cloud channel",
+    )
+
+    parser.add_argument(
+        "--current-cloudchannel",
+        dest="show_current_cloudchannel",
+        action="store_true",
+        help="Show current cloud channel name",
+    )
+
     return parser.parse_args()
 
 
@@ -209,6 +229,9 @@ def load_config():
         password=password,
         new_password=args.new_password,
         new_default_pulled_dir=args.new_default_pulled_dir,
+        new_cloudchannel=args.new_cloudchannel,
+        show_current_cloudchannel=args.show_current_cloudchannel,
+        switched_cloudchannel=args.switched_cloudchannel,
         excluded_dirs=args.excluded_dirs,
         excluded_files=args.excluded_files,
         excluded_file_suffixes=args.excluded_file_suffixes,

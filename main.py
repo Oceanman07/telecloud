@@ -17,8 +17,9 @@ from src.cloudmap.functions import clean_prepared_data
 async def main():
     config = load_config()
 
-    if config.action == "config":
-        set_config(config)
+    # in order to create a new channel we have to act like end-user
+    if config.action == "config" and not config.new_cloudchannel:
+        await set_config(config)
         return
     elif config.action == "list":
         list_pushed_files(config)
@@ -43,7 +44,10 @@ async def main():
             return
 
         try:
-            if config.action == "push":
+            if config.action == "config":
+                await set_config(config, client)
+
+            elif config.action == "push":
                 await push_data(client, result["symmetric_key"], config)
 
             elif config.action == "pull":

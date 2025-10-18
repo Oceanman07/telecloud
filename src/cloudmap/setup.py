@@ -9,7 +9,6 @@ from telethon import TelegramClient
 from telethon.tl.functions.channels import CreateChannelRequest, EditPhotoRequest
 from telethon.tl.types import InputChatUploadedPhoto
 
-from .functions import get_cloud_channel_id
 from .. import aes, rsa
 from ..logo import LOGO
 from ..utils import write_file
@@ -62,22 +61,23 @@ def _get_password():
         return password
 
 
-async def _create_channel(client: TelegramClient):
-    channel = await client(
-        CreateChannelRequest(title="TeleCloud", about="Free cloud", megagroup=False)
-    )
-    return channel.chats[0].id
+async def create_channel(client: TelegramClient, title="TeleCloud", about="Free cloud"):
+    channel = await client(CreateChannelRequest(title, about, megagroup=False))
+    channel_id = channel.chats[0].id
+    return int("-100" + str(channel_id))  # PeerChannel → -100 + channel ID
 
 
-async def _set_channel_photo(client: TelegramClient):
+async def set_channel_photo(
+    client: TelegramClient, cloud_channel_id, file_name="DefaultFileName.png"
+):
     # This is also the very first step
     # -> decoding doesnt need to be async since the blocking doesnt affect at all
     file_bytes = io.BytesIO(base64.b64decode(LOGO))
-    file_bytes.name = "CloudLogoAvatar.png"
+    file_bytes.name = file_name
 
     uploaded_file = await client.upload_file(file_bytes)
     chat_photo = InputChatUploadedPhoto(uploaded_file)
-    channel = await client.get_entity(get_cloud_channel_id())
+    channel = await client.get_entity(cloud_channel_id)
 
     await client(EditPhotoRequest(channel, chat_photo))
 
@@ -144,18 +144,19 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
     write_file(CLOUDMAP_PATH, cloudmap, mode="w", serialize=True)
 
     # create cloud channel to store files
-    channel_id = await _create_channel(client)
+    channel_id = await create_channel(client)
     config = {
         "api_id": api_id,
         "api_hash": api_hash,
-        "cloud_channel_id": int(
-            "-100" + str(channel_id)
-        ),  # PeerChannel → -100 + channel ID
+        "cloud_channel_id": channel_id,
+        "cloud_channels": {
+            "main": channel_id,  # default cloud channel
+        },
         "encrypted_symmetric_key": encrypted_main_symmetric_key.hex(),
         "pulled_directory": default_pulled_dir,
         "is_auto_fill_password": {"status": False, "value": None},
     }
     write_file(CONFIG_PATH, config, mode="w", serialize=True)
 
-    await _set_channel_photo(client)
+    await set_channel_photo(client, channel_id)
     print(f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Cloud channel created")

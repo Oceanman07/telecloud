@@ -13,6 +13,9 @@ class Config:
         password,
         new_password,
         new_default_pulled_dir,
+        new_cloudchannel,
+        show_current_cloudchannel,
+        switched_cloudchannel,
         is_recursive,
         excluded_dirs,
         excluded_files,
@@ -28,6 +31,9 @@ class Config:
         self.__password = password
         self.__new_password = new_password
         self.__new_default_pulled_dir = new_default_pulled_dir
+        self.__new_cloudchannel = new_cloudchannel
+        self.__switched_cloudchannel = switched_cloudchannel
+        self.__show_current_cloudchannel = show_current_cloudchannel
         self.__is_recursive = is_recursive
         self.__excluded_dirs = excluded_dirs
         self.__excluded_files = excluded_files
@@ -63,6 +69,18 @@ class Config:
     @property
     def new_default_pulled_dir(self):
         return self.__new_default_pulled_dir
+
+    @property
+    def new_cloudchannel(self):
+        return self.__new_cloudchannel
+
+    @property
+    def switched_cloudchannel(self):
+        return self.__switched_cloudchannel
+
+    @property
+    def show_current_cloudchannel(self):
+        return self.__show_current_cloudchannel
 
     @property
     def is_recursive(self):

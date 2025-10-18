@@ -2,12 +2,14 @@ import os
 import time
 
 from colorama import Style, Fore
+from telethon import TelegramClient
 
 from .. import aes, rsa
 from ..protector import load_symmetric_key
 from ..config import Config
 from ..utils import read_file, write_file
 from ..constants import CONFIG_PATH, ENCRYPTED_PRIVATE_KEY_PATH
+from ..cloudmap.setup import create_channel, set_channel_photo
 
 
 def _add_password_to_config(password):
@@ -77,7 +79,62 @@ def _change_new_default_pulled_directory(new_directory):
     )
 
 
-def set_config(config: Config):
+async def _create_new_cloudchannel(client: TelegramClient):
+    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+
+    title = input("Title: ").strip()
+
+    if title in config["cloud_channels"]:
+        print(
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Cloud already exists"
+        )
+        return
+
+    description = input("Description: ")
+
+    channel_id = await create_channel(client, title, description)
+    await set_channel_photo(client, channel_id, title + ".png")
+
+    config["cloud_channels"][title] = channel_id
+    write_file(CONFIG_PATH, config, mode="w", serialize=True)
+
+    print(
+        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} New cloud channel created{Fore.RESET}"
+    )
+
+
+def _switch_cloud_channel(cloud_channel_name):
+    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+
+    if cloud_channel_name not in config["cloud_channels"]:
+        print(
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Cloud not found"
+        )
+        return
+
+    switched_cloud_channel_id = config["cloud_channels"][cloud_channel_name]
+    config["cloud_channel_id"] = switched_cloud_channel_id
+
+    write_file(CONFIG_PATH, config, mode="w", serialize=True)
+
+    print(
+        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Switched to {cloud_channel_name}{Fore.RESET}"
+    )
+
+
+def _show_current_cloud_channel():
+    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+    current_channel_id = config["cloud_channel_id"]
+
+    for channel_name in config["cloud_channels"]:
+        channel_id = config["cloud_channels"][channel_name]
+        if channel_id == current_channel_id:
+            print(
+                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Current cloud channel: {channel_name}{Fore.RESET}"
+            )
+
+
+async def set_config(config: Config, client=None):
     if config.is_auto_fill_password == "true":
         _add_password_to_config(config.password)
     elif config.is_auto_fill_password == "false":
@@ -86,3 +143,9 @@ def set_config(config: Config):
         _change_password(config.password, config.new_password)
     elif config.new_default_pulled_dir:
         _change_new_default_pulled_directory(config.new_default_pulled_dir)
+    elif config.new_cloudchannel:
+        await _create_new_cloudchannel(client)
+    elif config.switched_cloudchannel:
+        _switch_cloud_channel(config.switched_cloudchannel)
+    elif config.show_current_cloudchannel:
+        _show_current_cloud_channel()
