@@ -21,7 +21,7 @@ from ..cloudmap.functions import (
     update_cloudmap,
     get_cloud_channel_id,
     get_existed_checksums,
-    get_existed_file_paths_on_cloudmap,
+    get_existed_file_paths,
 )
 
 # 8 upload/retrieve files at the time
@@ -197,7 +197,7 @@ def _prepare_pushed_data(
     is_recursive,
     filter_name_func,
 ):
-    existed_file_paths = get_existed_file_paths_on_cloudmap()
+    existed_file_paths = get_existed_file_paths()
     checksums = get_existed_checksums()
 
     file_paths = []

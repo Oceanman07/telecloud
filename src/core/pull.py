@@ -12,7 +12,7 @@ from ..utils import read_file, read_file_in_chunk
 from ..cloudmap.functions import (
     get_cloudmap,
     get_cloud_channel_id,
-    get_existed_file_names_on_cloudmap,
+    get_existed_file_names,
 )
 from ..constants import (
     NAMING_FILE_MAX_LENGTH,
@@ -156,7 +156,7 @@ def _prepare_pulled_data(
     filter_name_func,
 ):
     cloudmap = get_cloudmap()
-    existed_file_names = get_existed_file_names_on_cloudmap()
+    existed_file_names = get_existed_file_names()
     pulled_files = os.listdir(saved_directory)
 
     saved_paths = []

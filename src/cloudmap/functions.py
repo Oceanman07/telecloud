@@ -74,7 +74,7 @@ def get_cloudmap(cloudmap):
 
 
 @load_cloudmap
-def get_existed_file_names_on_cloudmap(cloudmap):
+def get_existed_file_names(cloudmap):
     """
     Get all the file names of pushed files for naming pulled files
     it cannot use `set` to deduplicate for smaller size
@@ -95,7 +95,7 @@ def get_existed_checksums(cloudmap):
 
 
 @load_cloudmap
-def get_existed_file_paths_on_cloudmap(cloudmap):
+def get_existed_file_paths(cloudmap):
     # like get_existed_checksums
     return set([cloudmap[msg_id]["file_path"] for msg_id in cloudmap])
 

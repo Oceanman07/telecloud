@@ -1,5 +1,4 @@
 import os
-import json
 import time
 
 from colorama import Style, Fore
@@ -12,21 +11,17 @@ from ..constants import CONFIG_PATH, ENCRYPTED_PRIVATE_KEY_PATH
 
 
 def _add_password_to_config(password):
-    with open(CONFIG_PATH, "r") as f:
-        file_content = json.load(f)
-        file_content["is_auto_fill_password"] = {"status": True, "value": password}
+    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+    config["is_auto_fill_password"] = {"status": True, "value": password}
 
-    with open(CONFIG_PATH, "w") as f:
-        json.dump(file_content, f)
+    write_file(CONFIG_PATH, config, mode="w", serialize=True)
 
 
 def _remove_password_from_config():
-    with open(CONFIG_PATH, "r") as f:
-        file_content = json.load(f)
-        file_content["is_auto_fill_password"] = {"status": False, "value": None}
+    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+    config["is_auto_fill_password"] = {"status": False, "value": None}
 
-    with open(CONFIG_PATH, "w") as f:
-        json.dump(file_content, f)
+    write_file(CONFIG_PATH, config, mode="w", serialize=True)
 
 
 def _change_password(old_password, new_password):
