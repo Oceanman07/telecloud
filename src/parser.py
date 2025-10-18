@@ -133,10 +133,10 @@ def _parse_args():
     )
 
     parser.add_argument(
-        "--current-cloudchannel",
-        dest="show_current_cloudchannel",
+        "--all-cloudchannels",
+        dest="show_all_cloudchannels",
         action="store_true",
-        help="Show current cloud channel name",
+        help="Show all cloud channels",
     )
 
     return parser.parse_args()
@@ -230,7 +230,7 @@ def load_config():
         new_password=args.new_password,
         new_default_pulled_dir=args.new_default_pulled_dir,
         new_cloudchannel=args.new_cloudchannel,
-        show_current_cloudchannel=args.show_current_cloudchannel,
+        show_all_cloudchannels=args.show_all_cloudchannels,
         switched_cloudchannel=args.switched_cloudchannel,
         excluded_dirs=args.excluded_dirs,
         excluded_files=args.excluded_files,

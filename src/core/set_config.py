@@ -99,7 +99,7 @@ async def _create_new_cloudchannel(client: TelegramClient):
     write_file(CONFIG_PATH, config, mode="w", serialize=True)
 
     print(
-        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} New cloud channel created{Fore.RESET}"
+        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} New cloud channel created: {Fore.GREEN}{title}{Fore.RESET}"
     )
 
 
@@ -118,20 +118,21 @@ def _switch_cloud_channel(cloud_channel_name):
     write_file(CONFIG_PATH, config, mode="w", serialize=True)
 
     print(
-        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Switched to {cloud_channel_name}{Fore.RESET}"
+        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Switched to {Fore.GREEN}{cloud_channel_name}{Fore.RESET}"
     )
 
 
-def _show_current_cloud_channel():
+def _show_all_cloud_channels():
     config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+
     current_channel_id = config["cloud_channel_id"]
 
     for channel_name in config["cloud_channels"]:
         channel_id = config["cloud_channels"][channel_name]
         if channel_id == current_channel_id:
-            print(
-                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Current cloud channel: {channel_name}{Fore.RESET}"
-            )
+            print(f"*{Fore.GREEN}{channel_name}{Fore.RESET}")
+        else:
+            print(f" {channel_name}")
 
 
 async def set_config(config: Config, client=None):
@@ -147,5 +148,5 @@ async def set_config(config: Config, client=None):
         await _create_new_cloudchannel(client)
     elif config.switched_cloudchannel:
         _switch_cloud_channel(config.switched_cloudchannel)
-    elif config.show_current_cloudchannel:
-        _show_current_cloud_channel()
+    elif config.show_all_cloudchannels:
+        _show_all_cloud_channels()
