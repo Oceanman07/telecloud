@@ -55,7 +55,7 @@ def _get_password():
         confirm = getpass("Confirm:\n>: ")
         if password != confirm:
             print(
-                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET}   Password does not match"
+                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Password does not match"
             )
             continue
 

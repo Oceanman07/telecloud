@@ -60,11 +60,34 @@ def _change_password(old_password, new_password):
     )
 
 
+def _change_new_default_pulled_directory(new_directory):
+    absolute_path = os.path.abspath(new_directory)
+    if not os.path.exists(absolute_path):
+        print(
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Directory path not found"
+        )
+        return
+    if not os.path.isdir(absolute_path):
+        print(
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Not a directory"
+        )
+        return
+
+    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+    config["pulled_directory"] = absolute_path
+    write_file(CONFIG_PATH, config, mode="w", serialize=True)
+
+    print(
+        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Default pulled directory has been changed {Fore.RESET}"
+    )
+
+
 def set_config(config: Config):
-    # when setting config -> blocking io does not matter at all
     if config.is_auto_fill_password == "true":
         _add_password_to_config(config.password)
     elif config.is_auto_fill_password == "false":
         _remove_password_from_config()
     elif config.new_password:
         _change_password(config.password, config.new_password)
+    elif config.new_default_pulled_dir:
+        _change_new_default_pulled_directory(config.new_default_pulled_dir)

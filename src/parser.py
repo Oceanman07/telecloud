@@ -108,7 +108,15 @@ def _parse_args():
     )
 
     parser.add_argument(
-        "--change-password", dest="new_password", help="Set a new password"
+        "--change-password",
+        dest="new_password",
+        help="Change new password for TeleCloud",
+    )
+
+    parser.add_argument(
+        "--change-pulled-dir",
+        dest="new_default_pulled_dir",
+        help="Change new default pulled directory",
     )
 
     return parser.parse_args()
@@ -200,6 +208,7 @@ def load_config():
         target_path=target_path,
         password=password,
         new_password=args.new_password,
+        new_default_pulled_dir=args.new_default_pulled_dir,
         excluded_dirs=args.excluded_dirs,
         excluded_files=args.excluded_files,
         excluded_file_suffixes=args.excluded_file_suffixes,
