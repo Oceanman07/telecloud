@@ -42,29 +42,17 @@ async def _split_big_file(file_path):
 
     def split():
         file_parts = []
-        max_split_times = 1
-        split_count = 0
         part_num = 1
-        written_size = 0
 
-        size_file = os.path.getsize(file_path)
         for encrypted_chunk in read_file_in_chunk(file_path, is_encrypted=True):
             file_part = os.path.join(
                 STORED_PREPARED_FILE_PATHS,
                 str(part_num) + "_" + os.path.basename(file_path),
             )
-            with open(file_part, "ab") as f:
-                f.write(encrypted_chunk)
-                written_size += len(encrypted_chunk)
+            write_file(file_part, encrypted_chunk)
 
-            split_count += 1
-            if split_count == max_split_times:
-                part_num += 1
-                file_parts.append(file_part)
-                split_count = 0
-
-            elif written_size >= size_file:
-                file_parts.append(file_part)
+            file_parts.append(file_part)
+            part_num += 1
 
         if not future.done():
             loop.call_soon_threadsafe(future.set_result, file_parts)
