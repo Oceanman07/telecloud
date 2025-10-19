@@ -93,7 +93,7 @@ async def _create_new_cloudchannel(client: TelegramClient):
     description = input("Description: ")
 
     channel_id = await create_channel(client, title, description)
-    await set_channel_photo(client, channel_id, title + ".png")
+    await set_channel_photo(client, channel_id, title + ".jpg")
 
     config["cloud_channels"][title] = channel_id
     write_file(CONFIG_PATH, config, mode="w", serialize=True)

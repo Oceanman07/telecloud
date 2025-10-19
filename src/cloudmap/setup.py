@@ -10,7 +10,7 @@ from telethon.tl.functions.channels import CreateChannelRequest, EditPhotoReques
 from telethon.tl.types import InputChatUploadedPhoto
 
 from .. import aes, rsa
-from ..logo import LOGO
+from ..icon import ICON
 from ..utils import write_file
 from ..constants import (
     ENCRYPTED_PRIVATE_KEY_PATH,
@@ -68,11 +68,11 @@ async def create_channel(client: TelegramClient, title="TeleCloud", about="Free 
 
 
 async def set_channel_photo(
-    client: TelegramClient, cloud_channel_id, file_name="DefaultFileName.png"
+    client: TelegramClient, cloud_channel_id, file_name="icon.jpg"
 ):
     # This is also the very first step
     # -> decoding doesnt need to be async since the blocking doesnt affect at all
-    file_bytes = io.BytesIO(base64.b64decode(LOGO))
+    file_bytes = io.BytesIO(base64.b64decode(ICON))
     file_bytes.name = file_name
 
     uploaded_file = await client.upload_file(file_bytes)
