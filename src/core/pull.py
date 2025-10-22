@@ -155,7 +155,6 @@ def _prepare_pulled_data(
     filter_name_func,
 ):
     cloudmap = get_cloudmap()
-    print(cloudmap)
     pushed_file_names = get_pushed_file_names()
     pulled_files = os.listdir(saved_directory)
 

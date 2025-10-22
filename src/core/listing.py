@@ -1,4 +1,4 @@
-import os
+from colorama import Fore
 
 from ..config import Config
 from ..cloudmap.functions import get_cloudmap
@@ -11,9 +11,9 @@ def list_pushed_files(config: Config):
     filter_name_func = config.filter_name_func
 
     count = 0
-    for msg_id in cloudmap:
-        file_name = os.path.basename(cloudmap[msg_id]["file_path"])
-        file_size = cloudmap[msg_id]["file_size"]
+    for pushed_file in cloudmap:
+        file_name = pushed_file["file_name"]
+        file_size = pushed_file["file_size"]
 
         if file_name in config.excluded_files:
             continue
@@ -23,4 +23,6 @@ def list_pushed_files(config: Config):
             continue
 
         count += 1
-        print(f"[{count}] {file_name}  - {convert_bytes(file_size)}")
+        print(
+            f"[{count}] {file_name}  - {Fore.GREEN}{convert_bytes(file_size)}{Fore.RESET}"
+        )
