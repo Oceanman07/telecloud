@@ -17,11 +17,10 @@ from ..utils import (
     read_file_in_chunk,
 )
 from ..cloudmap.functions import (
-    get_cloudmap,
     update_cloudmap,
     get_cloud_channel_id,
-    get_existed_checksums,
-    get_existed_file_paths,
+    get_pushed_file_paths,
+    get_pushed_checksums,
 )
 
 # 8 upload/retrieve files at the time
@@ -108,9 +107,7 @@ async def _upload_big_file(
     upload_info_path = os.path.join(
         STORED_PREPARED_FILE_PATHS, "0_" + os.path.basename(file_path)
     )
-    await asyncio.get_running_loop().run_in_executor(
-        None, write_file, upload_info_path, upload_info, "w", True
-    )
+    await asyncio.to_thread(write_file, upload_info_path, upload_info, "w", True)
     msg = await upload(upload_info_path)
 
     return msg[upload_info_path]
@@ -167,12 +164,11 @@ async def _upload_file(
 
         return {
             "msg_id": msg_id,
-            "attrib": {
-                "checksum": checksum,
-                "file_path": file_path,
-                "file_size": file_size,
-                "time": time.strftime("%d-%m-%y.%H-%M-%S"),
-            },
+            "file_path": file_path,
+            "file_name": os.path.basename(file_path),
+            "file_size": file_size,
+            "checksum": checksum,
+            "time": time.strftime("%d-%m-%y.%H-%M-%S"),
         }
 
 
@@ -185,8 +181,8 @@ def _prepare_pushed_data(
     is_recursive,
     filter_name_func,
 ):
-    existed_file_paths = get_existed_file_paths()
-    checksums = get_existed_checksums()
+    pushed_file_paths = get_pushed_file_paths()
+    checksums = get_pushed_checksums()
 
     file_paths = []
     for dir_path, _, file_names in os.walk(root_directory):
@@ -205,7 +201,7 @@ def _prepare_pushed_data(
             if not filter_name_func(file_name):
                 continue
 
-            if file_path not in existed_file_paths:
+            if file_path not in pushed_file_paths:
                 file_paths.append(file_path)
                 continue
 
@@ -224,8 +220,8 @@ def _prepare_pushed_data(
 
 
 async def push_data(client: TelegramClient, symmetric_key, config: Config):
-    new_cloudmap = get_cloudmap()
-    cloud_channel = await client.get_entity(get_cloud_channel_id())
+    channel_id = get_cloud_channel_id()
+    cloud_channel = await client.get_entity(channel_id)
 
     if config.target_path["is_file"]:
         try:
@@ -236,10 +232,12 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
                 config.target_path["value"],
                 is_single_file=True,
             )
-            new_cloudmap[result["msg_id"]] = result["attrib"]
-            await update_cloudmap(new_cloudmap)
+
+            result["channel_id"] = channel_id
+            await update_cloudmap(result)
+
             print(
-                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Fore.RESET}   {result['attrib']['file_path']}"
+                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Fore.RESET}   {result['file_path']}"
             )
         except asyncio.exceptions.CancelledError:
             return
@@ -263,15 +261,15 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
         for task in asyncio.as_completed(tasks):
             try:
                 result = await task
+                result["channel_id"] = channel_id
+                await update_cloudmap(result)
+
+                count += 1
+                print(
+                    f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path']}"
+                )
+
             except asyncio.exceptions.CancelledError:
                 # This exception raises when pressing Ctrl+C to stop the program
                 # which cancels all the coros -> return to stop immediately (no need to iterate the rest)
                 return
-
-            new_cloudmap[result["msg_id"]] = result["attrib"]
-            await update_cloudmap(new_cloudmap)
-
-            count += 1
-            print(
-                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['attrib']['file_path']}"
-            )

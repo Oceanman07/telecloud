@@ -10,9 +10,9 @@ from ..config import Config
 from ..protector import decrypt_file
 from ..utils import read_file, read_file_in_chunk
 from ..cloudmap.functions import (
-    get_cloudmap,
     get_cloud_channel_id,
-    get_existed_file_names,
+    get_cloudmap,
+    get_pushed_file_names,
 )
 from ..constants import (
     NAMING_FILE_MAX_LENGTH,
@@ -96,9 +96,8 @@ async def _download_big_file(
         # which cancels all the tasks -> client.download_file coro will raise ConnectionError
         # after that the worker download will return to stop -> None
         return
-    file_parts = await asyncio.get_running_loop().run_in_executor(
-        None, read_file, file_info_path, "r", True
-    )
+
+    file_parts = await asyncio.to_thread(read_file, file_info_path, "r", True)
     os.remove(file_info_path)
 
     tasks = [download(file_parts[file_part]) for file_part in file_parts]
@@ -120,13 +119,13 @@ async def _download_file(
         try:
             if file["file_size"] < CHUNK_LENGTH_FOR_LARGE_FILE:
                 file_from_cloud = await _download_small_file(
-                    client, cloud_channel, int(file["msg_id"])
+                    client, cloud_channel, file["msg_id"]
                 )
             else:
                 file_from_cloud = await _download_big_file(
                     client,
                     cloud_channel,
-                    int(file["msg_id"]),
+                    file["msg_id"],
                     is_single_file=is_single_file,
                 )
         except ConnectionError:
@@ -156,13 +155,16 @@ def _prepare_pulled_data(
     filter_name_func,
 ):
     cloudmap = get_cloudmap()
-    existed_file_names = get_existed_file_names()
+    print(cloudmap)
+    pushed_file_names = get_pushed_file_names()
     pulled_files = os.listdir(saved_directory)
 
-    saved_paths = []
-    for msg_id in cloudmap:
-        file_name = os.path.basename(cloudmap[msg_id]["file_path"])
-        file_size = cloudmap[msg_id]["file_size"]
+    prepared_data = []
+    for pushed_file in cloudmap:
+        msg_id = pushed_file["msg_id"]
+        file_name = pushed_file["file_name"]
+        file_size = pushed_file["file_size"]
+        pushed_time = pushed_file["time"]
 
         if file_name in excluded_files:
             continue
@@ -175,8 +177,8 @@ def _prepare_pulled_data(
 
         # If a file has multiple uploads, when downloading we need to make its name different with time
         # since it shares the same name
-        if existed_file_names.count(file_name) != 1:
-            differentor = "." + msg_id + "." + cloudmap[msg_id]["time"]
+        if pushed_file_names.count(file_name) != 1:
+            differentor = "." + str(msg_id) + "." + pushed_time
             base, ext = os.path.splitext(file_name)
             new_file_name = base + differentor + ext
 
@@ -192,11 +194,11 @@ def _prepare_pulled_data(
             continue
 
         saved_path = os.path.join(saved_directory, file_name)
-        saved_paths.append(
+        prepared_data.append(
             {"msg_id": msg_id, "file_size": file_size, "saved_path": saved_path}
         )
 
-    return saved_paths
+    return prepared_data
 
 
 async def pull_data(client: TelegramClient, symmetric_key, config: Config):
@@ -205,12 +207,12 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
     if config.target_path["is_file"]:
         file = {}
         # get the lastest file
-        reversed_cloudmap = dict(reversed(get_cloudmap().items()))
-        for msg_id in reversed_cloudmap:
-            file_name = os.path.basename(reversed_cloudmap[msg_id]["file_path"])
+        reversed_cloudmap = reversed(get_cloudmap())
+        for pushed_file in reversed_cloudmap:
+            file_name = pushed_file["file_name"]
             if file_name == os.path.basename(config.target_path["value"]):
-                file["msg_id"] = msg_id
-                file["file_size"] = reversed_cloudmap[msg_id]["file_size"]
+                file["msg_id"] = pushed_file["msg_id"]
+                file["file_size"] = pushed_file["file_size"]
                 file["saved_path"] = os.path.abspath(file_name)
                 try:
                     result = await _download_file(
@@ -244,12 +246,12 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
         for task in asyncio.as_completed(tasks):
             try:
                 result = await task
+                count += 1
+                print(
+                    f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result}"
+                )
+
             except asyncio.exceptions.CancelledError:
                 # This exception raises when pressing Ctrl+C to stop the program
                 # which cancels all the coros -> return to stop immediately (no need to iterate the rest)
                 return
-
-            count += 1
-            print(
-                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result}"
-            )

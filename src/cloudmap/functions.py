@@ -1,18 +1,13 @@
 import os
 import asyncio
+import sqlite3
 
 from ..utils import read_file, write_file
 from ..constants import (
     CONFIG_PATH,
-    CLOUDMAP_PATH,
+    CLOUDMAP_DB_PATH,
     STORED_PREPARED_FILE_PATHS,
 )
-
-
-async def update_cloudmap(cloudmap):
-    await asyncio.get_running_loop().run_in_executor(
-        None, write_file, CLOUDMAP_PATH, cloudmap, "w", True
-    )
 
 
 def load_config(func):
@@ -54,50 +49,107 @@ def get_default_pulled_directory(config):
     return config["pulled_directory"]
 
 
-def load_cloudmap(func):
-    cloudmap = None
-    if os.path.exists(CLOUDMAP_PATH):
-        cloudmap = read_file(CLOUDMAP_PATH, mode="r", deserialize=True)
+async def update_cloudmap(cloudmap):
+    def update():
+        conn = sqlite3.connect(CLOUDMAP_DB_PATH)
+        cursor = conn.cursor()
 
-    def load():
-        nonlocal cloudmap
-        if cloudmap is None:
-            cloudmap = read_file(CLOUDMAP_PATH, mode="r", deserialize=True)
-        return func(cloudmap)
+        cursor.execute(
+            """
+            INSERT INTO cloudmap VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                cloudmap["channel_id"],
+                cloudmap["msg_id"],
+                cloudmap["file_path"],
+                cloudmap["file_name"],
+                cloudmap["file_size"],
+                cloudmap["checksum"],
+                cloudmap["time"],
+            ),
+        )
 
-    return load
+        conn.commit()
+        conn.close()
 
-
-@load_cloudmap
-def get_cloudmap(cloudmap):
-    return cloudmap
-
-
-@load_cloudmap
-def get_existed_file_names(cloudmap):
-    """
-    Get all the file names of pushed files for naming pulled files
-    it cannot use `set` to deduplicate for smaller size
-    since a single file has multiple uploads means it has changed a lot
-    so when pulling we will have all the changed version of that file with file name = file_name + msg_id + time
-    """
-    return [os.path.basename(cloudmap[msg_id]["file_path"]) for msg_id in cloudmap]
+    await asyncio.to_thread(update)
 
 
-@load_cloudmap
-def get_existed_checksums(cloudmap):
-    """
-    Get all the checksums of pushed files for checking if a file is changed or not
-    if it doesnt change then no need to push again
-    a lot of files may have the same content so use `set` to deduplicate for faster checking
-    """
-    return set([cloudmap[msg_id]["checksum"] for msg_id in cloudmap])
+def get_cloudmap():
+    channel_id = get_cloud_channel_id()
+
+    conn = sqlite3.connect(CLOUDMAP_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT * FROM cloudmap where channel_id=?
+        """,
+        (channel_id,),
+    )
+
+    result = cursor.fetchall()
+    conn.close()
+
+    return [dict(i) for i in result]
 
 
-@load_cloudmap
-def get_existed_file_paths(cloudmap):
-    # like get_existed_checksums
-    return set([cloudmap[msg_id]["file_path"] for msg_id in cloudmap])
+def get_pushed_file_paths():
+    channel_id = get_cloud_channel_id()
+
+    conn = sqlite3.connect(CLOUDMAP_DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT file_path FROM cloudmap where channel_id=?
+        """,
+        (channel_id,),
+    )
+
+    result = cursor.fetchall()
+    conn.close()
+
+    return [i[0] for i in result]
+
+
+def get_pushed_file_names():
+    channel_id = get_cloud_channel_id()
+
+    conn = sqlite3.connect(CLOUDMAP_DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT file_name FROM cloudmap where channel_id = ?
+        """,
+        (channel_id,),
+    )
+
+    result = cursor.fetchall()
+    conn.close()
+
+    return [i[0] for i in result]
+
+
+def get_pushed_checksums():
+    channel_id = get_cloud_channel_id()
+
+    conn = sqlite3.connect(CLOUDMAP_DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT checksum FROM cloudmap where channel_id=?
+        """,
+        (channel_id,),
+    )
+
+    result = cursor.fetchall()
+    conn.close()
+
+    return [i[0] for i in result]
 
 
 def clean_prepared_data():
