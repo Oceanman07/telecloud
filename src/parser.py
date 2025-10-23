@@ -21,6 +21,8 @@ def _parse_args():
         usage="tc [action] [options] [target_path only for push/pull]",
         formatter_class=argparse.RawTextHelpFormatter,
     )
+
+    # Main commands
     subparsers = parser.add_subparsers(
         title="Main commands",
         dest="command",
@@ -31,18 +33,29 @@ def _parse_args():
     # pushing command
     push = subparsers.add_parser(
         "push",
-        usage="tc push [options] [target_path]",
-        description="using with Filter and General options",
+        usage="tc [options] push [target_path]",
+        description=(
+            "  using with (Filter, General) options\n"
+            "  example:\n"
+            '    tc -n "*png" push example_dir/'
+        ),
         help="upload files to cloud channel",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     push.add_argument("target_path", help="a file or directory")
 
     # pulling command
     pull = subparsers.add_parser(
         "pull",
-        usage="tc pull [options] [target_path]",
-        description="using with Filter and General options",
+        usage="tc [options] pull [target_path]",
+        description=(
+            "  if not provided a stored directory or a pushed file, all files will be downloaded and stored in default pulled directory\n\n"
+            "  using with (Filter, General) options\n"
+            "  example:\n"
+            '    tc -n "*png" pull example_dir/'
+        ),
         help="download files from cloud channel",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     pull.add_argument("target_path", help="a pushed file name or a stored directory")
 
@@ -89,9 +102,10 @@ def _parse_args():
     # listing pushed files command
     listing = subparsers.add_parser(
         "list",
-        usage="tc list [options]",
-        description="using with Filter options",
+        usage="tc [options] list",
+        description=('  using with Filter options\n  example:\n    tc -n "*png" list'),
         help="list pushed files",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
 
     # Filter options
@@ -176,10 +190,6 @@ def load_config():
         api_hash = get_api_hash()
 
     args = _parse_args()
-
-    if sys.argv[1] not in ("push", "pull", "config", "list", "channel"):
-        print("usage: tc [action] [options] [target_path only for push/pull]")
-        exit()
 
     if args.command == "push":
         if not args.target_path:
