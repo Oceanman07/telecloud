@@ -10,6 +10,10 @@ from ..constants import (
 )
 
 
+def update_config(config):
+    write_file(CONFIG_PATH, config, mode="w", serialize=True)
+
+
 def load_config(func):
     config = None
     if os.path.exists(CONFIG_PATH):
@@ -22,6 +26,11 @@ def load_config(func):
         return func(config)
 
     return load
+
+
+@load_config
+def get_config(config):
+    return config
 
 
 @load_config
