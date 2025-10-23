@@ -18,119 +18,143 @@ from .cloudmap.functions.config import (
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description="Quick usage: tc push/pull [Optional args] [target_path]",
+        usage="tc [action] [options] [target_path only for push/pull]",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-
-    # Required arguments
-
-    parser.add_argument(
-        "action",
-        choices=["push", "pull", "config", "list", "channel"],
-        help=(
-            "push     upload files to cloud\n"
-            "pull     download pushed files from cloud\n"
-            "config   configure options\n"
-            "list     show pushed files\n"
-            "channel  list, create, switch cloud channel"
-        ),
-    )
-    parser.add_argument(
-        "target_path",
-        nargs="?",  # since it only requires for pushing, pulling and setting the config
-        help="The file/dir path for pushing (an existing path) and pulling (a pushed file name or stored directory)",
+    subparsers = parser.add_subparsers(
+        title="Main commands",
+        dest="command",
+        required=True,
+        metavar="using `tc [command] -h` for more",
     )
 
-    # Optional arguments
+    # pushing command
+    push = subparsers.add_parser(
+        "push",
+        usage="tc push [options] [target_path]",
+        description="using with Filter and General options",
+        help="upload files to cloud channel",
+    )
+    push.add_argument("target_path", help="a file or directory")
 
-    # if password is not provided, the program will ask
-    parser.add_argument(
-        "-p",
-        "--password",
-        dest="password",
-        help="Password for generating key to encrypt/decrypt file",
+    # pulling command
+    pull = subparsers.add_parser(
+        "pull",
+        usage="tc pull [options] [target_path]",
+        description="using with Filter and General options",
+        help="download files from cloud channel",
+    )
+    pull.add_argument("target_path", help="a pushed file name or a stored directory")
+
+    # setting config command
+    config = subparsers.add_parser(
+        "config", usage="tc config [options]", help="show and set config options"
+    )
+    config.add_argument(
+        "--autofill-password",
+        dest="is_auto_fill_password",
+        choices=["true", "false"],
+        help="set automatic filling the password",
+    )
+    config.add_argument(
+        "--change-password",
+        dest="new_password",
+        help="change a new password for using telecloud",
+    )
+    config.add_argument(
+        "--change-pulled-dir",
+        dest="new_default_pulled_dir",
+        help="change a new default pulled directory",
     )
 
-    parser.add_argument(
-        "-r",
-        "--recursion",
-        dest="is_recursive",
+    # setting channel command
+    channel = subparsers.add_parser(
+        "channel",
+        usage="tc channel [options]",
+        description="if options not provided, all cloud channels will be listed",
+        help="list, create or switch cloud channel",
+    )
+    channel.add_argument(
+        "--new",
+        dest="new_cloudchannel",
         action="store_true",
-        help="Process recursively subdirectories (for pushing)",
+        help="create a new cloud channel",
+    )
+    channel.add_argument(
+        "--switch",
+        dest="switched_cloudchannel",
+        help="switch to another cloud channel",
     )
 
-    parser.add_argument(
+    # listing pushed files command
+    listing = subparsers.add_parser(
+        "list",
+        usage="tc list [options]",
+        description="using with Filter options",
+        help="list pushed files",
+    )
+
+    # Filter options
+    filter = parser.add_argument_group(
+        "Filter options",
+        "These options can be used to filter in and filter out input files for push, pull and list command",
+    )
+    filter.add_argument(
+        "-n",
+        "--in-name",
+        dest="in_name",
+        help="filter in wanted specific file name pattern",
+    )
+    filter.add_argument(
         "-ed",
         "--excluded-dir",
         dest="excluded_dirs",
         action="append",
         default=[],
-        help="Filter out unwanted directories",
+        help="filter out unwanted directories",
     )
-
-    parser.add_argument(
+    filter.add_argument(
         "-ef",
         "--excluded-file",
         dest="excluded_files",
         action="append",
         default=[],
-        help="Filter out unwanted files",
+        help="filter out unwanted files",
     )
-
-    parser.add_argument(
+    filter.add_argument(
         "-es",
         "--excluded-file-suffix",
         dest="excluded_file_suffixes",
         action="append",
         default=[],
-        help="Filter out unwanted file suffixes",
+        help="filter out unwanted file suffixes",
     )
-
-    parser.add_argument(
-        "-n",
-        "--in-name",
-        dest="in_name",
-        help="Filter in wanted specific file name pattern",
-    )
-
-    parser.add_argument(
+    filter.add_argument(
         "-ms",
         "--max-size",
         dest="max_size",
         default="2GB",
-        help="The maxinum allowed size of a file when pushing/pulling",
+        help="the maxinum allowed size of a file when pushing/pulling",
     )
 
-    parser.add_argument(
-        "--autofill-password",
-        dest="is_auto_fill_password",
-        choices=["true", "false"],
-        help="Set automatic filling the password",
+    # General global options
+    general = parser.add_argument_group(
+        "General options",
+        "These options can be used to do general works",
     )
-
-    parser.add_argument(
-        "--change-password",
-        dest="new_password",
-        help="Change new password for TeleCloud",
+    # if password is not provided, the program will ask
+    general.add_argument(
+        "-p",
+        "--password",
+        dest="password",
+        help="password for generating key to encrypt/decrypt file",
     )
-
-    parser.add_argument(
-        "--change-pulled-dir",
-        dest="new_default_pulled_dir",
-        help="Change new default pulled directory",
-    )
-
-    parser.add_argument(
-        "--new",
-        dest="new_cloudchannel",
+    general.add_argument(
+        "-r",
+        "--recursion",
+        dest="is_recursive",
         action="store_true",
-        help="Create a new cloud channel",
-    )
-
-    parser.add_argument(
-        "--switch",
-        dest="switched_cloudchannel",
-        help="Switch to another cloud channel",
+        help="process recursively subdirectories (for pushing)",
     )
 
     return parser.parse_args()
@@ -154,10 +178,10 @@ def load_config():
     args = _parse_args()
 
     if sys.argv[1] not in ("push", "pull", "config", "list", "channel"):
-        print("usage: tc push/pull [Optional args] [target_path]")
+        print("usage: tc [action] [options] [target_path only for push/pull]")
         exit()
 
-    if args.action == "push":
+    if args.command == "push":
         if not args.target_path:
             print(
                 f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET}   Pushing requires an existing path"
@@ -174,7 +198,7 @@ def load_config():
 
         target_path = {"is_file": os.path.isfile(absolute_path), "value": absolute_path}
 
-    elif args.action == "pull":
+    elif args.command == "pull":
         if not args.target_path:
             target_path = {"is_file": False, "value": get_default_pulled_directory()}
             os.makedirs(get_default_pulled_directory(), exist_ok=True)
@@ -200,7 +224,7 @@ def load_config():
     # CONFIG_PATH does not exist means the program have not setup yet
     # in the setup step -> the password will be asked
     # and list command does not need password
-    if not os.path.exists(CONFIG_PATH) or args.action == "list":
+    if not os.path.exists(CONFIG_PATH) or args.command == "list":
         password = "No need yet"
     else:
         with open(CONFIG_PATH, "r") as f:
@@ -218,18 +242,51 @@ def load_config():
     return Config(
         api_id=api_id,
         api_hash=api_hash,
-        action=args.action,
+        command=args.command,
         target_path=target_path,
         password=password,
-        new_password=args.new_password,
-        new_default_pulled_dir=args.new_default_pulled_dir,
-        new_cloudchannel=args.new_cloudchannel,
-        switched_cloudchannel=args.switched_cloudchannel,
-        excluded_dirs=args.excluded_dirs,
-        excluded_files=args.excluded_files,
-        excluded_file_suffixes=args.excluded_file_suffixes,
-        is_recursive=args.is_recursive,
-        in_name=args.in_name,
-        max_size=args.max_size,
-        is_auto_fill_password=args.is_auto_fill_password,
+        new_default_pulled_dir=_set_none_if_uncalled_attrib(
+            args, "new_default_pulled_dir"
+        ),
+        switched_cloudchannel=_set_none_if_uncalled_attrib(
+            args, "switched_cloudchannel"
+        ),
+        excluded_file_suffixes=_set_none_if_uncalled_attrib(
+            args, "excluded_file_suffixes"
+        ),
+        is_auto_fill_password=_set_none_if_uncalled_attrib(
+            args, "is_auto_fill_password"
+        ),
+        in_name=_set_none_if_uncalled_attrib(args, "in_name"),
+        max_size=_set_none_if_uncalled_attrib(args, "max_size"),
+        is_recursive=_set_none_if_uncalled_attrib(args, "is_recursive"),
+        new_password=_set_none_if_uncalled_attrib(args, "new_password"),
+        excluded_dirs=_set_none_if_uncalled_attrib(args, "excluded_dirs"),
+        excluded_files=_set_none_if_uncalled_attrib(args, "excluded_files"),
+        new_cloudchannel=_set_none_if_uncalled_attrib(args, "new_cloudchannel"),
     )
+
+
+def _set_none_if_uncalled_attrib(args, attrib_name):
+    if attrib_name == "new_password":
+        return args.new_password if attrib_name in args else None
+    elif attrib_name == "new_default_pulled_dir":
+        return args.new_default_pulled_dir if attrib_name in args else None
+    elif attrib_name == "new_cloudchannel":
+        return args.new_cloudchannel if attrib_name in args else None
+    elif attrib_name == "switched_cloudchannel":
+        return args.switched_cloudchannel if attrib_name in args else None
+    elif attrib_name == "excluded_dirs":
+        return args.excluded_dirs if attrib_name in args else None
+    elif attrib_name == "excluded_files":
+        return args.excluded_files if attrib_name in args else None
+    elif attrib_name == "excluded_file_suffixes":
+        return args.excluded_file_suffixes if attrib_name in args else None
+    elif attrib_name == "is_recursive":
+        return args.is_recursive if attrib_name in args else None
+    elif attrib_name == "in_name":
+        return args.in_name if attrib_name in args else None
+    elif attrib_name == "max_size":
+        return args.max_size if attrib_name in args else None
+    elif attrib_name == "is_auto_fill_password":
+        return args.is_auto_fill_password if attrib_name in args else None

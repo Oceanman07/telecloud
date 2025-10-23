@@ -18,12 +18,12 @@ async def main():
     config = load_config()
 
     # in order to create a new channel we have to act like end-user
-    if config.action == "config" or (
-        config.action == "channel" and not config.new_cloudchannel
+    if config.command == "config" or (
+        config.command == "channel" and not config.new_cloudchannel
     ):
         await set_config(config)
         return
-    elif config.action == "list":
+    elif config.command == "list":
         list_pushed_files(config)
         return
 
@@ -46,13 +46,13 @@ async def main():
             return
 
         try:
-            if config.action == "channel":
+            if config.command == "channel":
                 await set_config(config, client)
 
-            elif config.action == "push":
+            elif config.command == "push":
                 await push_data(client, result["symmetric_key"], config)
 
-            elif config.action == "pull":
+            elif config.command == "pull":
                 await pull_data(client, result["symmetric_key"], config)
 
         except KeyboardInterrupt:

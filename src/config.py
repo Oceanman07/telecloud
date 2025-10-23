@@ -8,7 +8,7 @@ class Config:
         self,
         api_id,
         api_hash,
-        action,
+        command,
         target_path,
         password,
         new_password,
@@ -25,7 +25,7 @@ class Config:
     ):
         self.__api_id = api_id
         self.__api_hash = api_hash
-        self.__action = action
+        self.__command = command
         self.__target_path = target_path
         self.__password = password
         self.__new_password = new_password
@@ -49,8 +49,8 @@ class Config:
         return self.__api_hash
 
     @property
-    def action(self):
-        return self.__action
+    def command(self):
+        return self.__command
 
     @property
     def target_path(self):

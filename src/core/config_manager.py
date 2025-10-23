@@ -136,7 +136,7 @@ def _show_all_cloud_channels():
 
 
 async def set_config(config: Config, client=None):
-    if config.action == "config":
+    if config.command == "config":
         if config.is_auto_fill_password == "true":
             _add_password_to_config(config.password)
 
@@ -149,7 +149,7 @@ async def set_config(config: Config, client=None):
         elif config.new_default_pulled_dir:
             _change_new_default_pulled_directory(config.new_default_pulled_dir)
 
-    elif config.action == "channel":
+    elif config.command == "channel":
         if config.new_cloudchannel:
             await _create_new_cloudchannel(client)
 
