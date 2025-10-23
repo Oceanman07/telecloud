@@ -5,10 +5,10 @@ from colorama import Style, Fore
 from telethon import TelegramClient
 
 from .. import aes, rsa
-from ..protector import load_symmetric_key
+from ..loaders import load_symmetric_key
 from ..config import Config
-from ..utils import read_file, write_file
-from ..constants import CONFIG_PATH, ENCRYPTED_PRIVATE_KEY_PATH
+from ..utils import write_file
+from ..constants import ENCRYPTED_PRIVATE_KEY_PATH
 from ..cloudmap.functions import get_config, update_config
 from ..cloudmap.setup import create_channel, set_channel_photo
 
@@ -21,7 +21,7 @@ def _add_password_to_config(password):
 
 
 def _remove_password_from_config():
-    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+    config = get_config()
     config["is_auto_fill_password"] = {"status": False, "value": None}
 
     update_config(config)
@@ -40,7 +40,7 @@ def _change_password(old_password, new_password):
     new_encrypted_main_symmetric_key = rsa.encrypt(
         new_public_key, result["symmetric_key"]
     )
-    config = read_file(CONFIG_PATH, mode="r", deserialize=True)
+    config = get_config()
     config["encrypted_symmetric_key"] = new_encrypted_main_symmetric_key.hex()
     update_config(config)
 

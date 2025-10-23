@@ -5,7 +5,7 @@ from colorama import Style, Fore
 from telethon import TelegramClient
 
 from src.parser import load_config
-from src.protector import load_symmetric_key, load_string_session
+from src.loaders import load_symmetric_key, load_string_session
 from src.core.set_config import set_config
 from src.core.listing import list_pushed_files
 from src.core.push import push_data
