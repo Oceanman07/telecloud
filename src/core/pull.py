@@ -9,11 +9,8 @@ from telethon import TelegramClient
 from ..config import Config
 from ..protector import decrypt_file
 from ..utils import read_file, read_file_in_chunk
-from ..cloudmap.functions import (
-    get_cloud_channel_id,
-    get_cloudmap,
-    get_pushed_file_names,
-)
+from ..cloudmap.functions.cloudmap import get_cloudmap, get_pushed_file_names
+from ..cloudmap.functions.config import get_cloud_channel_id
 from ..constants import (
     NAMING_FILE_MAX_LENGTH,
     STORED_PREPARED_FILE_PATHS,

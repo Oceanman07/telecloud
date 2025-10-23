@@ -16,9 +16,9 @@ from ..utils import (
     write_file,
     read_file_in_chunk,
 )
-from ..cloudmap.functions import (
+from ..cloudmap.functions.config import get_cloud_channel_id
+from ..cloudmap.functions.cloudmap import (
     update_cloudmap,
-    get_cloud_channel_id,
     get_pushed_file_paths,
     get_pushed_checksums,
 )

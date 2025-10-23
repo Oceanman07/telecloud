@@ -6,12 +6,12 @@ from telethon import TelegramClient
 
 from src.parser import load_config
 from src.loaders import load_symmetric_key, load_string_session
+from src.utils import clean_prepared_data
 from src.core.set_config import set_config
 from src.core.listing import list_pushed_files
 from src.core.push import push_data
 from src.core.pull import pull_data
 from src.cloudmap.setup import setup_cloudmap, check_health_cloudmap
-from src.cloudmap.functions import clean_prepared_data
 
 
 async def main():

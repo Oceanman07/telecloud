@@ -5,7 +5,7 @@ from telethon.sessions import StringSession
 from . import aes, rsa
 from .utils import read_file
 from .constants import STRING_SESSION_PATH, ENCRYPTED_PRIVATE_KEY_PATH
-from .cloudmap.functions import get_encrypted_symmetric_key
+from .cloudmap.functions.config import get_encrypted_symmetric_key
 
 
 def load_string_session(symmetric_key):

@@ -1,10 +1,22 @@
+import os
 import asyncio
 import threading
 import json
 import hashlib
 import random
 
-from .constants import NONCE_LENGTH, TAG_LENGTH, CHUNK_LENGTH_FOR_LARGE_FILE
+from .constants import (
+    NONCE_LENGTH,
+    TAG_LENGTH,
+    CHUNK_LENGTH_FOR_LARGE_FILE,
+    STORED_PREPARED_FILE_PATHS,
+)
+
+
+def clean_prepared_data():
+    for path in os.listdir(STORED_PREPARED_FILE_PATHS):
+        file_path = os.path.join(STORED_PREPARED_FILE_PATHS, path)
+        os.remove(file_path)
 
 
 def get_random_number():

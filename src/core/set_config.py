@@ -9,8 +9,8 @@ from ..loaders import load_symmetric_key
 from ..config import Config
 from ..utils import write_file
 from ..constants import ENCRYPTED_PRIVATE_KEY_PATH
-from ..cloudmap.functions import get_config, update_config
-from ..cloudmap.setup import create_channel, set_channel_photo
+from ..tl import create_channel, set_channel_photo
+from ..cloudmap.functions.config import get_config, update_config
 
 
 def _add_password_to_config(password):

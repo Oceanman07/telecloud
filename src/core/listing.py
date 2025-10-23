@@ -1,7 +1,7 @@
 from colorama import Fore
 
 from ..config import Config
-from ..cloudmap.functions import get_cloudmap
+from ..cloudmap.functions.cloudmap import get_cloudmap
 from ..utils import convert_bytes
 
 

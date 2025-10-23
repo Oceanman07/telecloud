@@ -1,17 +1,13 @@
 import os
-import io
 import time
-import base64
-import sqlite3
 from getpass import getpass
 
 from colorama import Style, Fore
 from telethon import TelegramClient
-from telethon.tl.functions.channels import CreateChannelRequest, EditPhotoRequest
-from telethon.tl.types import InputChatUploadedPhoto
 
+from .functions.cloudmap import create_cloudmap_db
+from ..tl import create_channel, set_channel_photo
 from .. import aes, rsa
-from ..icon import ICON
 from ..utils import write_file
 from ..constants import (
     ENCRYPTED_PRIVATE_KEY_PATH,
@@ -19,7 +15,6 @@ from ..constants import (
     PULLED_DIR_IN_DOCUMENTS,
     PULLED_DIR_IN_DOWNLOADS,
     CONFIG_PATH,
-    CLOUDMAP_DB_PATH,
     STRING_SESSION_PATH,
     STORED_CLOUDMAP_PATHS,
     INCLUDED_CLOUDMAP_PATHS,
@@ -60,47 +55,6 @@ def _get_password():
             continue
 
         return password
-
-
-async def create_channel(client: TelegramClient, title="TeleCloud", about="Free cloud"):
-    channel = await client(CreateChannelRequest(title, about, megagroup=False))
-    channel_id = channel.chats[0].id
-    return int("-100" + str(channel_id))  # PeerChannel → -100 + channel ID
-
-
-async def set_channel_photo(
-    client: TelegramClient, cloud_channel_id, file_name="icon.jpg"
-):
-    file_bytes = io.BytesIO(base64.b64decode(ICON))
-    file_bytes.name = file_name
-
-    uploaded_file = await client.upload_file(file_bytes)
-    chat_photo = InputChatUploadedPhoto(uploaded_file)
-    channel = await client.get_entity(cloud_channel_id)
-
-    await client(EditPhotoRequest(channel, chat_photo))
-
-
-def create_database():
-    conn = sqlite3.connect(CLOUDMAP_DB_PATH)
-    cursor = conn.cursor()
-
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS cloudmap (
-            channel_id INTERGER,
-            msg_id INTERGER,
-            file_path TEXT,
-            file_name TEXT,
-            file_size INTERGER,
-            checksum TEXT,
-            time TEXT
-        )
-        """
-    )
-
-    conn.commit()
-    conn.close()
 
 
 async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
@@ -161,7 +115,7 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
     encrypted_main_symmetric_key = rsa.encrypt(public_key, main_symmetric_key)
 
     # store cloud_channel_id, msg_id, file_path, file_name, file_size, checksum, time
-    create_database()
+    create_cloudmap_db()
 
     # create cloud channel to store files
     channel_id = await create_channel(client)
