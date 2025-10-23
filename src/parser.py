@@ -26,17 +26,18 @@ def _parse_args():
 
     parser.add_argument(
         "action",
-        choices=["push", "pull", "config", "list"],
+        choices=["push", "pull", "config", "list", "channel"],
         help=(
             "push     upload files to cloud\n"
             "pull     download pushed files from cloud\n"
             "config   configure options\n"
-            "list     show pushed files"
+            "list     show pushed files\n"
+            "channel  list, create, switch cloud channel"
         ),
     )
     parser.add_argument(
         "target_path",
-        nargs="?",  # since it only requires for pushing and pulling
+        nargs="?",  # since it only requires for pushing, pulling and setting the config
         help="The file/dir path for pushing (an existing path) and pulling (a pushed file name or stored directory)",
     )
 
@@ -120,23 +121,16 @@ def _parse_args():
     )
 
     parser.add_argument(
-        "--new-channel",
+        "--new",
         dest="new_cloudchannel",
         action="store_true",
-        help="Create a new cloud channel to store files",
+        help="Create a new cloud channel",
     )
 
     parser.add_argument(
-        "--switch-channel",
+        "--switch",
         dest="switched_cloudchannel",
         help="Switch to another cloud channel",
-    )
-
-    parser.add_argument(
-        "--all-channels",
-        dest="show_all_cloudchannels",
-        action="store_true",
-        help="Show all cloud channels",
     )
 
     return parser.parse_args()
@@ -159,7 +153,7 @@ def load_config():
 
     args = _parse_args()
 
-    if sys.argv[1] not in ("push", "pull", "config", "list"):
+    if sys.argv[1] not in ("push", "pull", "config", "list", "channel"):
         print("usage: tc push/pull [Optional args] [target_path]")
         exit()
 
@@ -230,7 +224,6 @@ def load_config():
         new_password=args.new_password,
         new_default_pulled_dir=args.new_default_pulled_dir,
         new_cloudchannel=args.new_cloudchannel,
-        show_all_cloudchannels=args.show_all_cloudchannels,
         switched_cloudchannel=args.switched_cloudchannel,
         excluded_dirs=args.excluded_dirs,
         excluded_files=args.excluded_files,

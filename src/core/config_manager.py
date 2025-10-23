@@ -136,17 +136,25 @@ def _show_all_cloud_channels():
 
 
 async def set_config(config: Config, client=None):
-    if config.is_auto_fill_password == "true":
-        _add_password_to_config(config.password)
-    elif config.is_auto_fill_password == "false":
-        _remove_password_from_config()
-    elif config.new_password:
-        _change_password(config.password, config.new_password)
-    elif config.new_default_pulled_dir:
-        _change_new_default_pulled_directory(config.new_default_pulled_dir)
-    elif config.new_cloudchannel:
-        await _create_new_cloudchannel(client)
-    elif config.switched_cloudchannel:
-        _switch_cloud_channel(config.switched_cloudchannel)
-    elif config.show_all_cloudchannels:
-        _show_all_cloud_channels()
+    if config.action == "config":
+        if config.is_auto_fill_password == "true":
+            _add_password_to_config(config.password)
+
+        elif config.is_auto_fill_password == "false":
+            _remove_password_from_config()
+
+        elif config.new_password:
+            _change_password(config.password, config.new_password)
+
+        elif config.new_default_pulled_dir:
+            _change_new_default_pulled_directory(config.new_default_pulled_dir)
+
+    elif config.action == "channel":
+        if config.new_cloudchannel:
+            await _create_new_cloudchannel(client)
+
+        elif config.switched_cloudchannel:
+            _switch_cloud_channel(config.switched_cloudchannel)
+
+        else:
+            _show_all_cloud_channels()

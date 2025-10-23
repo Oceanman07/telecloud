@@ -7,7 +7,7 @@ from telethon import TelegramClient
 from src.parser import load_config
 from src.loaders import load_symmetric_key, load_string_session
 from src.utils import clean_prepared_data
-from src.core.set_config import set_config
+from src.core.config_manager import set_config
 from src.core.listing import list_pushed_files
 from src.core.push import push_data
 from src.core.pull import pull_data
@@ -18,7 +18,9 @@ async def main():
     config = load_config()
 
     # in order to create a new channel we have to act like end-user
-    if config.action == "config" and not config.new_cloudchannel:
+    if config.action == "config" or (
+        config.action == "channel" and not config.new_cloudchannel
+    ):
         await set_config(config)
         return
     elif config.action == "list":
@@ -44,7 +46,7 @@ async def main():
             return
 
         try:
-            if config.action == "config":
+            if config.action == "channel":
                 await set_config(config, client)
 
             elif config.action == "push":
