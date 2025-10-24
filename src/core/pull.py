@@ -6,7 +6,7 @@ import time
 from colorama import Fore
 from telethon import TelegramClient
 
-from ..config import Config
+from ..config_manager.config import Config
 from ..protector import decrypt_file
 from ..utils import read_file, read_file_in_chunk
 from ..cloudmap.functions.cloudmap import get_cloudmap, get_pushed_file_names

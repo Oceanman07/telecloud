@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 import time
 import argparse
@@ -7,8 +6,8 @@ from getpass import getpass
 
 from colorama import Fore
 
-from .config import Config
 from .constants import CONFIG_PATH
+from .config_manager.config import Config
 from .cloudmap.functions.config import (
     get_api_id,
     get_api_hash,
@@ -83,7 +82,10 @@ def _parse_args():
 
     # setting config command
     config = subparsers.add_parser(
-        "config", usage="tc config [options]", help="set config options"
+        "config",
+        usage="tc config [options]",
+        description="if options not provided, all config settings will be listed",
+        help="show or set config options",
     )
     config.add_argument(
         "--autofill-password",

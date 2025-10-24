@@ -1,6 +1,6 @@
 import os
 
-from .utils import convert_bytes_to_int
+from ..utils import convert_bytes_to_int
 
 
 class Config:

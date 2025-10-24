@@ -1,33 +1,32 @@
-import os
 import time
+import json
 
 from colorama import Style, Fore
 from telethon import TelegramClient
 
 from .. import aes, rsa
 from ..loaders import load_symmetric_key
-from ..config import Config
 from ..utils import write_file
 from ..constants import ENCRYPTED_PRIVATE_KEY_PATH
 from ..tl import create_channel, set_channel_photo
 from ..cloudmap.functions.config import get_config, update_config
 
 
-def _add_password_to_config(password):
+def add_password_to_config(password):
     config = get_config()
     config["is_auto_fill_password"] = {"status": True, "value": password}
 
     update_config(config)
 
 
-def _remove_password_from_config():
+def remove_password_from_config():
     config = get_config()
     config["is_auto_fill_password"] = {"status": False, "value": None}
 
     update_config(config)
 
 
-def _change_password(old_password, new_password):
+def change_password(old_password, new_password):
     result = load_symmetric_key(old_password)
     if not result["success"]:
         print(
@@ -58,7 +57,7 @@ def _change_password(old_password, new_password):
     )
 
 
-def _change_new_default_pulled_directory(new_directory):
+def change_new_default_pulled_directory(new_directory):
     absolute_path = os.path.abspath(new_directory)
     if not os.path.exists(absolute_path):
         print(
@@ -80,18 +79,34 @@ def _change_new_default_pulled_directory(new_directory):
     )
 
 
-async def _create_new_cloudchannel(client: TelegramClient):
+def show_all_config_setting():
+    config = get_config()
+    for key in config:
+        if isinstance(config[key], dict):
+            print(
+                f"+ {Fore.GREEN}{key}{Fore.RESET}: {json.dumps(config[key], indent=4)}"
+            )
+        else:
+            print(f"+ {Fore.GREEN}{key}{Fore.RESET}: {config[key]}")
+
+
+async def create_new_cloudchannel(client: TelegramClient):
     config = get_config()
 
     title = input("Title: ").strip()
 
     if title in config["cloud_channels"]:
         print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Cloud already exists"
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Cloud channel already exists"
         )
         return
 
     description = input("Description: ")
+
+    # confirm again just to make sure "you" like the channel name
+    confirm = input("[*] confirm? y/n:")
+    if confirm != "y":
+        return
 
     channel_id = await create_channel(client, title, description)
     await set_channel_photo(client, channel_id, title + ".jpg")
@@ -104,7 +119,7 @@ async def _create_new_cloudchannel(client: TelegramClient):
     )
 
 
-def _switch_cloud_channel(cloud_channel_name):
+def switch_cloud_channel(cloud_channel_name):
     config = get_config()
 
     if cloud_channel_name not in config["cloud_channels"]:
@@ -122,7 +137,7 @@ def _switch_cloud_channel(cloud_channel_name):
     )
 
 
-def _show_all_cloud_channels():
+def show_all_cloud_channels():
     config = get_config()
 
     current_channel_id = config["cloud_channel_id"]
@@ -133,28 +148,3 @@ def _show_all_cloud_channels():
             print(f"* {Fore.GREEN}{channel_name}{Fore.RESET}")
         else:
             print(f"  {channel_name}")
-
-
-async def set_config(config: Config, client=None):
-    if config.command == "config":
-        if config.is_auto_fill_password == "true":
-            _add_password_to_config(config.password)
-
-        elif config.is_auto_fill_password == "false":
-            _remove_password_from_config()
-
-        elif config.new_password:
-            _change_password(config.password, config.new_password)
-
-        elif config.new_default_pulled_dir:
-            _change_new_default_pulled_directory(config.new_default_pulled_dir)
-
-    elif config.command == "channel":
-        if config.new_cloudchannel:
-            await _create_new_cloudchannel(client)
-
-        elif config.switched_cloudchannel:
-            _switch_cloud_channel(config.switched_cloudchannel)
-
-        else:
-            _show_all_cloud_channels()

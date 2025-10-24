@@ -1,6 +1,6 @@
 from colorama import Fore
 
-from ..config import Config
+from ..config_manager.config import Config
 from ..cloudmap.functions.cloudmap import get_cloudmap
 from ..utils import convert_bytes
 

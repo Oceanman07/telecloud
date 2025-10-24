@@ -6,7 +6,7 @@ import time
 from colorama import Fore
 from telethon import TelegramClient
 
-from ..config import Config
+from ..config_manager.config import Config
 from ..protector import encrypt_file
 from ..constants import CHUNK_LENGTH_FOR_LARGE_FILE, STORED_PREPARED_FILE_PATHS
 from ..utils import (
