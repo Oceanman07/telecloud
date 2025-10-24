@@ -18,7 +18,13 @@ from .cloudmap.functions.config import (
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        usage="tc [action] [options] [target_path only for push/pull]",
+        usage="tc [options] [command] [target_path only for push/pull]",
+        epilog=(
+            "for more convienent you might need to run this command:\n"
+            "   `tc -p your_password config --autofill-password true`\n"
+            "to unset, run:\n"
+            "   `tc config --autofill-password false"
+        ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
 
@@ -27,7 +33,7 @@ def _parse_args():
         title="Main commands",
         dest="command",
         required=True,
-        metavar="using `tc [command] -h` for more",
+        metavar="using `tc [command] -h` for more\n",
     )
 
     # pushing command
@@ -35,33 +41,49 @@ def _parse_args():
         "push",
         usage="tc [options] push [target_path]",
         description=(
-            "  using with (Filter, General) options\n"
-            "  example:\n"
-            '    tc -n "*png" push example_dir/'
+            "if you want to push a whole directory where it contains big size files, "
+            "you should push that big MB or GB file as a single file cause it will be faster\n\n"
+            "example:\n"
+            "   tc -ms 20MB push example_dir/\n"
+            "  then:\n"
+            "   tc push example_dir/really_big_file.mp4"
         ),
         help="upload files to cloud channel",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     push.add_argument("target_path", help="a file or directory")
+    push.add_argument(
+        "-r",
+        "--recursion",
+        dest="is_recursive",
+        action="store_true",
+        help="process recursively subdirectories",
+    )
 
     # pulling command
     pull = subparsers.add_parser(
         "pull",
         usage="tc [options] pull [target_path]",
         description=(
-            "  if not provided a stored directory or a pushed file, all files will be downloaded and stored in default pulled directory\n\n"
-            "  using with (Filter, General) options\n"
-            "  example:\n"
-            '    tc -n "*png" pull example_dir/'
+            "if you do not provide a pushed file name or a stored directory, "
+            "files will be downloaded and stored in the default pulled directory\n"
+            "also, if you want to pull every pushed files which may contain big size files, "
+            "you should pull that big MB or GB file as a single file cause it will be faster\n\n"
+            "example:\n"
+            "   tc -ms 20MB pull\n"
+            "  then:\n"
+            "   tc pull really_big_file.mp4  # note that this file will be stored in the current directory"
         ),
         help="download files from cloud channel",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    pull.add_argument("target_path", help="a pushed file name or a stored directory")
+    pull.add_argument(
+        "target_path", nargs="?", help="a pushed file name or a stored directory"
+    )
 
     # setting config command
     config = subparsers.add_parser(
-        "config", usage="tc config [options]", help="show and set config options"
+        "config", usage="tc config [options]", help="set config options"
     )
     config.add_argument(
         "--autofill-password",
@@ -94,6 +116,7 @@ def _parse_args():
         help="create a new cloud channel",
     )
     channel.add_argument(
+        "-s",
         "--switch",
         dest="switched_cloudchannel",
         help="switch to another cloud channel",
@@ -103,55 +126,12 @@ def _parse_args():
     listing = subparsers.add_parser(
         "list",
         usage="tc [options] list",
-        description=('  using with Filter options\n  example:\n    tc -n "*png" list'),
+        description=('example:\n   tc -n "*png" list'),
         help="list pushed files",
         formatter_class=argparse.RawTextHelpFormatter,
     )
 
-    # Filter options
-    filter = parser.add_argument_group(
-        "Filter options",
-        "These options can be used to filter in and filter out input files for push, pull and list command",
-    )
-    filter.add_argument(
-        "-n",
-        "--in-name",
-        dest="in_name",
-        help="filter in wanted specific file name pattern",
-    )
-    filter.add_argument(
-        "-ed",
-        "--excluded-dir",
-        dest="excluded_dirs",
-        action="append",
-        default=[],
-        help="filter out unwanted directories",
-    )
-    filter.add_argument(
-        "-ef",
-        "--excluded-file",
-        dest="excluded_files",
-        action="append",
-        default=[],
-        help="filter out unwanted files",
-    )
-    filter.add_argument(
-        "-es",
-        "--excluded-file-suffix",
-        dest="excluded_file_suffixes",
-        action="append",
-        default=[],
-        help="filter out unwanted file suffixes",
-    )
-    filter.add_argument(
-        "-ms",
-        "--max-size",
-        dest="max_size",
-        default="2GB",
-        help="the maxinum allowed size of a file when pushing/pulling",
-    )
-
-    # General global options
+    # General options
     general = parser.add_argument_group(
         "General options",
         "These options can be used to do general works",
@@ -164,11 +144,49 @@ def _parse_args():
         help="password for generating key to encrypt/decrypt file",
     )
     general.add_argument(
-        "-r",
-        "--recursion",
-        dest="is_recursive",
-        action="store_true",
-        help="process recursively subdirectories (for pushing)",
+        "-n",
+        "--in-name",
+        dest="in_name",
+        help=(
+            'filter in wanted specific file name pattern\nexample:\n   -n "fuc*" or -n "*k" or -n "*you*"'
+        ),
+    )
+    general.add_argument(
+        "-ed",
+        "--excluded-dir",
+        dest="excluded_dirs",
+        action="append",
+        default=[],
+        help=(
+            "filter out unwanted directories\nexample:\n   -ed unwanted_dir -ed excluded_dir -ed .git"
+        ),
+    )
+    general.add_argument(
+        "-ef",
+        "--excluded-file",
+        dest="excluded_files",
+        action="append",
+        default=[],
+        help=(
+            "filter out unwanted files\nexample:\n   -ef text.txt -ef .gitignore -ef movie.mp4"
+        ),
+    )
+    general.add_argument(
+        "-es",
+        "--excluded-file-suffix",
+        dest="excluded_file_suffixes",
+        action="append",
+        default=[],
+        help=(
+            "filter out unwanted file suffixes\nexample:\n   -es mp4 -es mkv -es mp3"
+        ),
+    )
+    general.add_argument(
+        "-ms",
+        "--max-size",
+        dest="max_size",
+        default="2GB",
+        help="the maxinum allowed size of a file\nexample:\n   -ms 2KB or -ms 30MB or -ms 4GB",
     )
 
     return parser.parse_args()
