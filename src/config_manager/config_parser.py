@@ -109,7 +109,7 @@ def _parse_args():
         "channel",
         usage="tc channel [options]",
         description="if options not provided, all cloud channels will be listed",
-        help="list, create or switch cloud channel",
+        help="list, create, switch or delete cloud channels",
     )
     channel.add_argument(
         "--new",
@@ -122,6 +122,9 @@ def _parse_args():
         "--switch",
         dest="switched_cloudchannel",
         help="switch to another cloud channel",
+    )
+    channel.add_argument(
+        "-d", "--delete", dest="deleted_cloudchannel", help="delete a cloud channel"
     )
 
     # listing pushed files command
@@ -294,6 +297,7 @@ def load_config():
         excluded_dirs=_set_none_if_uncalled_attrib(args, "excluded_dirs"),
         excluded_files=_set_none_if_uncalled_attrib(args, "excluded_files"),
         new_cloudchannel=_set_none_if_uncalled_attrib(args, "new_cloudchannel"),
+        deleted_cloudchannel=_set_none_if_uncalled_attrib(args, "deleted_cloudchannel"),
     )
 
 
@@ -306,6 +310,8 @@ def _set_none_if_uncalled_attrib(args, attrib_name):
         return args.new_cloudchannel if attrib_name in args else None
     elif attrib_name == "switched_cloudchannel":
         return args.switched_cloudchannel if attrib_name in args else None
+    elif attrib_name == "deleted_cloudchannel":
+        return args.deleted_cloudchannel if attrib_name in args else None
     elif attrib_name == "excluded_dirs":
         return args.excluded_dirs if attrib_name in args else None
     elif attrib_name == "excluded_files":

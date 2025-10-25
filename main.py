@@ -22,7 +22,11 @@ async def main():
         return
 
     # in order to create a new channel we have to act like end-user
-    elif config.command == "channel" and not config.new_cloudchannel:
+    elif (
+        config.command == "channel"
+        and not config.new_cloudchannel
+        and not config.deleted_cloudchannel
+    ):
         await set_cloud_channel_config(config)
         return
 

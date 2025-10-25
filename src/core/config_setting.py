@@ -7,6 +7,7 @@ from ..config_manager.functions import (
     show_all_config_setting,
     create_new_cloudchannel,
     switch_cloud_channel,
+    delete_cloud_channel,
     show_all_cloud_channels,
 )
 
@@ -34,6 +35,9 @@ async def set_cloud_channel_config(config: Config, client=None):
 
     elif config.switched_cloudchannel:
         switch_cloud_channel(config.switched_cloudchannel)
+
+    elif config.deleted_cloudchannel:
+        await delete_cloud_channel(client, config.deleted_cloudchannel)
 
     else:
         show_all_cloud_channels()

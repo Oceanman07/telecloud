@@ -128,3 +128,20 @@ def get_pushed_checksums():
     conn.close()
 
     return [i[0] for i in result]
+
+
+def delete_pushed_files():
+    channel_id = get_cloud_channel_id()
+
+    conn = sqlite3.connect(CLOUDMAP_DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        DELETE FROM cloudmap where channel_id = ?
+        """,
+        (channel_id,),
+    )
+
+    conn.commit()
+    conn.close()

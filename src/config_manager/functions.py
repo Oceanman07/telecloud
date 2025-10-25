@@ -8,8 +8,9 @@ from .. import aes, rsa
 from ..loaders import load_symmetric_key
 from ..utils import write_file
 from ..constants import ENCRYPTED_PRIVATE_KEY_PATH
-from ..tl import create_channel, set_channel_photo
+from ..tl import create_channel, set_channel_photo, delete_channel
 from ..cloudmap.functions.config import get_config, update_config
+from ..cloudmap.functions.cloudmap import delete_pushed_files
 
 
 def add_password_to_config(password):
@@ -121,19 +122,43 @@ async def create_new_cloudchannel(client: TelegramClient):
 
 def switch_cloud_channel(cloud_channel_name):
     config = get_config()
+    cloud_channels = config["cloud_channels"]
 
-    if cloud_channel_name not in config["cloud_channels"]:
+    if cloud_channel_name not in cloud_channels:
         print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Cloud not found"
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Cloud channel not found"
         )
         return
 
-    switched_cloud_channel_id = config["cloud_channels"][cloud_channel_name]
+    switched_cloud_channel_id = cloud_channels[cloud_channel_name]
     config["cloud_channel_id"] = switched_cloud_channel_id
     update_config(config)
 
     print(
         f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Switched to {Fore.GREEN}{cloud_channel_name}{Fore.RESET}"
+    )
+
+
+async def delete_cloud_channel(client: TelegramClient, cloud_channel_name):
+    config = get_config()
+    cloud_channels = config["cloud_channels"]
+
+    if cloud_channel_name not in cloud_channels:
+        print(
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Cloud channel not found"
+        )
+        return
+
+    cloud_channel_id = cloud_channels[cloud_channel_name]
+    await delete_channel(client, cloud_channel_id)
+
+    delete_pushed_files()
+
+    config["cloud_channels"].pop(cloud_channel_name)
+    update_config(config)
+
+    print(
+        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Deleted {Fore.GREEN}{cloud_channel_name}{Fore.RESET}"
     )
 
 
