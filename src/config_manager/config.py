@@ -95,16 +95,8 @@ class Config:
         return self.__excluded_file_suffixes
 
     @property
-    def filter_name_func(self):
-        if self.__in_name is None:
-            return lambda _: True
-        if self.__in_name.startswith("*") and self.__in_name.endswith("*"):
-            return lambda file_name: self.__in_name[1:-1] in file_name
-        if self.__in_name.startswith("*"):
-            return lambda file_name: file_name.endswith(self.__in_name[1:])
-        if self.__in_name.endswith("*"):
-            return lambda file_name: file_name.startswith(self.__in_name[:-1])
-        return lambda _: False
+    def in_name(self):
+        return self.__in_name
 
     @property
     def max_size(self):

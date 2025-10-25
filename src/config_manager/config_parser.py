@@ -6,7 +6,7 @@ from getpass import getpass
 
 from colorama import Fore
 
-from .config_parser import Config
+from .config import Config
 from ..constants import CONFIG_PATH
 from ..cloudmap.functions.config import (
     get_api_id,

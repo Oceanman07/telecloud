@@ -6,21 +6,17 @@ import time
 from colorama import Fore
 from telethon import TelegramClient
 
+from ._data_preparer import PushedDataPreparer
 from ..config_manager.config import Config
 from ..protector import encrypt_file
 from ..constants import CHUNK_LENGTH_FOR_LARGE_FILE, STORED_PREPARED_FILE_PATHS
+from ..cloudmap.functions.config import get_cloud_channel_id
+from ..cloudmap.functions.cloudmap import update_cloudmap
 from ..utils import (
-    get_checksum,
     async_get_checksum,
     get_random_number,
     write_file,
     read_file_in_chunk,
-)
-from ..cloudmap.functions.config import get_cloud_channel_id
-from ..cloudmap.functions.cloudmap import (
-    update_cloudmap,
-    get_pushed_file_paths,
-    get_pushed_checksums,
 )
 
 # 8 upload/retrieve files at the time
@@ -172,53 +168,6 @@ async def _upload_file(
         }
 
 
-def _prepare_pushed_data(
-    root_directory,
-    excluded_dirs,
-    excluded_files,
-    excluded_file_suffixes,
-    max_size,
-    is_recursive,
-    filter_name_func,
-):
-    pushed_file_paths = get_pushed_file_paths()
-    checksums = get_pushed_checksums()
-
-    file_paths = []
-    for dir_path, _, file_names in os.walk(root_directory):
-        if os.path.basename(dir_path) in excluded_dirs:
-            continue
-
-        for file_name in file_names:
-            file_path = os.path.join(dir_path, file_name)
-
-            if file_name in excluded_files:
-                continue
-            if any(file_name.endswith(suffix) for suffix in excluded_file_suffixes):
-                continue
-            if not os.path.getsize(file_path) <= max_size:
-                continue
-            if not filter_name_func(file_name):
-                continue
-
-            if file_path not in pushed_file_paths:
-                file_paths.append(file_path)
-                continue
-
-            if get_checksum(file_path) not in checksums:
-                file_paths.append(file_path)
-                continue
-
-            print(
-                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Remained{Fore.RESET}   {file_path}"
-            )
-
-        if not is_recursive:
-            break
-
-    return file_paths
-
-
 async def push_data(client: TelegramClient, symmetric_key, config: Config):
     channel_id = get_cloud_channel_id()
     cloud_channel = await client.get_entity(channel_id)
@@ -243,15 +192,16 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
             return
 
     else:
-        prepared_data = _prepare_pushed_data(
+        prepared_data = PushedDataPreparer(
             root_directory=config.target_path["value"],
             excluded_dirs=config.excluded_dirs,
             excluded_files=config.excluded_files,
             excluded_file_suffixes=config.excluded_file_suffixes,
             max_size=config.max_size,
+            in_name=config.in_name,
             is_recursive=config.is_recursive,
-            filter_name_func=config.filter_name_func,
-        )
+        ).prepare()
+
         tasks = [
             _upload_file(client, cloud_channel, symmetric_key, file_path)
             for file_path in prepared_data
