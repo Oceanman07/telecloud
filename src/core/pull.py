@@ -6,16 +6,13 @@ import time
 from colorama import Fore
 from telethon import TelegramClient
 
+from ._data_preparer import PulledDataPreparer
 from ..config_manager.config import Config
 from ..protector import decrypt_file
 from ..utils import read_file, read_file_in_chunk
-from ..cloudmap.functions.cloudmap import get_cloudmap, get_pushed_file_names
+from ..cloudmap.functions.cloudmap import get_cloudmap
 from ..cloudmap.functions.config import get_cloud_channel_id
-from ..constants import (
-    NAMING_FILE_MAX_LENGTH,
-    STORED_PREPARED_FILE_PATHS,
-    CHUNK_LENGTH_FOR_LARGE_FILE,
-)
+from ..constants import STORED_PREPARED_FILE_PATHS, CHUNK_LENGTH_FOR_LARGE_FILE
 
 # 8 upload/retrieve files at the time
 SEMAPHORE = asyncio.Semaphore(8)
@@ -144,59 +141,6 @@ async def _download_file(
         return file["saved_path"]
 
 
-def _prepare_pulled_data(
-    saved_directory,
-    excluded_files,
-    excluded_file_suffixes,
-    max_size,
-    filter_name_func,
-):
-    cloudmap = get_cloudmap()
-    pushed_file_names = get_pushed_file_names()
-    pulled_files = os.listdir(saved_directory)
-
-    prepared_data = []
-    for pushed_file in cloudmap:
-        msg_id = pushed_file["msg_id"]
-        file_name = pushed_file["file_name"]
-        file_size = pushed_file["file_size"]
-        pushed_time = pushed_file["time"]
-
-        if file_name in excluded_files:
-            continue
-        if any(file_name.endswith(suffix) for suffix in excluded_file_suffixes):
-            continue
-        if not file_size <= max_size:
-            continue
-        if not filter_name_func(file_name):
-            continue
-
-        # If a file has multiple uploads, when downloading we need to make its name different with time
-        # since it shares the same name
-        if pushed_file_names.count(file_name) != 1:
-            differentor = "." + str(msg_id) + "." + pushed_time
-            base, ext = os.path.splitext(file_name)
-            new_file_name = base + differentor + ext
-
-            if len(new_file_name) > NAMING_FILE_MAX_LENGTH:
-                # prevent filename reaches the limit (255 chars)
-                file_name = base[: -(len(differentor) + len(ext))] + differentor + ext
-            else:
-                file_name = new_file_name
-
-        # Check if the file is already pulled at the end
-        # since we need the name with msg_id + time of multiple pushed file
-        if file_name in pulled_files:
-            continue
-
-        saved_path = os.path.join(saved_directory, file_name)
-        prepared_data.append(
-            {"msg_id": msg_id, "file_size": file_size, "saved_path": saved_path}
-        )
-
-    return prepared_data
-
-
 async def pull_data(client: TelegramClient, symmetric_key, config: Config):
     cloud_channel = await client.get_entity(get_cloud_channel_id())
 
@@ -226,13 +170,13 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
         )
 
     else:
-        prepared_data = _prepare_pulled_data(
+        prepared_data = PulledDataPreparer(
             saved_directory=config.target_path["value"],
             excluded_files=config.excluded_files,
             excluded_file_suffixes=config.excluded_file_suffixes,
             max_size=config.max_size,
-            filter_name_func=config.filter_name_func,
-        )
+            in_name=config.in_name,
+        ).prepare()
         tasks = [
             _download_file(client, cloud_channel, symmetric_key, file)
             for file in prepared_data
