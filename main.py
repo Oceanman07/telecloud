@@ -4,7 +4,7 @@ import time
 from colorama import Style, Fore
 from telethon import TelegramClient
 
-from src.parser import load_config
+from src.config_manager.config_parser import load_config
 from src.loaders import load_symmetric_key, load_string_session
 from src.utils import clean_prepared_data
 from src.core.config_setting import set_general_config, set_cloud_channel_config
@@ -24,6 +24,7 @@ async def main():
     # in order to create a new channel we have to act like end-user
     elif config.command == "channel" and not config.new_cloudchannel:
         await set_cloud_channel_config(config)
+        return
 
     elif config.command == "list":
         list_pushed_files(config)

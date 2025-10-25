@@ -6,9 +6,9 @@ from getpass import getpass
 
 from colorama import Fore
 
-from .constants import CONFIG_PATH
-from .config_manager.config import Config
-from .cloudmap.functions.config import (
+from .config_parser import Config
+from ..constants import CONFIG_PATH
+from ..cloudmap.functions.config import (
     get_api_id,
     get_api_hash,
     get_default_pulled_directory,
