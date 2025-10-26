@@ -5,13 +5,17 @@ import json
 from colorama import Style, Fore
 from telethon import TelegramClient
 
+from .config_loader import get_config
 from .. import aes, rsa
 from ..loaders import load_symmetric_key
 from ..utils import write_file
-from ..constants import ENCRYPTED_PRIVATE_KEY_PATH
+from ..constants import ENCRYPTED_PRIVATE_KEY_PATH, CONFIG_PATH
 from ..tl import create_channel, set_channel_photo, delete_channel
-from ..cloudmap.functions.config import get_config, update_config
-from ..cloudmap.functions.cloudmap import delete_pushed_files
+from ..cloudmap import delete_pushed_files
+
+
+def update_config(config):
+    write_file(CONFIG_PATH, config, mode="w", serialize=True)
 
 
 def add_password_to_config(password):

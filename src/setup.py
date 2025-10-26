@@ -6,12 +6,12 @@ from colorama import Style, Fore
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
-from .functions.config import update_config
-from .functions.cloudmap import create_cloudmap_db
-from ..tl import create_channel, set_channel_photo
-from .. import aes, rsa
-from ..utils import write_file
-from ..constants import (
+from . import aes, rsa
+from .utils import write_file
+from .cloudmap import create_cloudmap_db
+from .tl import create_channel, set_channel_photo
+from .config_manager.functions import update_config
+from .constants import (
     ENCRYPTED_PRIVATE_KEY_PATH,
     PULLED_DIR_IN_DESKTOP,
     PULLED_DIR_IN_DOCUMENTS,
@@ -58,7 +58,7 @@ def _get_password():
         return password
 
 
-async def setup_cloudmap():
+async def setup_telecloud():
     print(
         f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Setup your TeleCloud{Fore.RESET}"
     )

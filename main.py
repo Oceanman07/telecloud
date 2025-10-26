@@ -11,12 +11,12 @@ from src.core.config_setting import set_general_config, set_cloud_channel_config
 from src.core.listing import list_pushed_files
 from src.core.push import push_data
 from src.core.pull import pull_data
-from src.cloudmap.setup import setup_cloudmap, check_health_cloudmap
+from src.setup import setup_telecloud, check_health_cloudmap
 
 
 async def main():
     if not check_health_cloudmap():
-        await setup_cloudmap()
+        await setup_telecloud()
         return
 
     config = load_config()

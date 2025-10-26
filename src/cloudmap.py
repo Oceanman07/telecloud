@@ -1,8 +1,8 @@
 import asyncio
 import sqlite3
 
-from .config import get_cloud_channel_id
-from ...constants import CLOUDMAP_DB_PATH
+from .config_manager.config_loader import get_cloud_channel_id
+from .constants import CLOUDMAP_DB_PATH
 
 
 def create_cloudmap_db():

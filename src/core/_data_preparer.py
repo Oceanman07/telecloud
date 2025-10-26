@@ -5,7 +5,7 @@ from colorama import Fore
 
 from ..utils import get_checksum
 from ..constants import NAMING_FILE_MAX_LENGTH
-from ..cloudmap.functions.cloudmap import (
+from ..cloudmap import (
     get_cloudmap,
     get_pushed_file_paths,
     get_pushed_file_names,

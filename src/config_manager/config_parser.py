@@ -1,5 +1,4 @@
 import os
-import json
 import time
 import argparse
 from getpass import getpass
@@ -8,7 +7,7 @@ from colorama import Fore
 
 from .config import Config
 from ..constants import CONFIG_PATH
-from ..cloudmap.functions.config import (
+from .config_loader import (
     get_config,
     get_api_id,
     get_api_hash,

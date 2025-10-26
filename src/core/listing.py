@@ -2,7 +2,7 @@ from colorama import Fore
 
 from ._data_preparer import DataFilter
 from ..config_manager.config import Config
-from ..cloudmap.functions.cloudmap import get_cloudmap
+from ..cloudmap import get_cloudmap
 from ..utils import convert_bytes
 
 

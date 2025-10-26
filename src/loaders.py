@@ -5,7 +5,7 @@ from telethon.sessions import StringSession
 from . import aes, rsa
 from .utils import read_file
 from .constants import STRING_SESSION_PATH, ENCRYPTED_PRIVATE_KEY_PATH
-from .cloudmap.functions.config import get_encrypted_symmetric_key
+from .config_manager.config_loader import get_encrypted_symmetric_key
 
 
 def load_string_session(symmetric_key):
@@ -16,9 +16,6 @@ def load_string_session(symmetric_key):
 
 
 def load_symmetric_key(password):
-    if not os.path.exists(ENCRYPTED_PRIVATE_KEY_PATH):
-        return {"success": True, "symmetric_key": None}
-
     with open(ENCRYPTED_PRIVATE_KEY_PATH, "rb") as f:
         salt = f.read(32)
         encrypted_private_key = f.read()

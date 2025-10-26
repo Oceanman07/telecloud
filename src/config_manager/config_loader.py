@@ -1,11 +1,7 @@
 import os
 
-from ...utils import read_file, write_file
-from ...constants import CONFIG_PATH
-
-
-def update_config(config):
-    write_file(CONFIG_PATH, config, mode="w", serialize=True)
+from ..utils import read_file
+from ..constants import CONFIG_PATH
 
 
 def load_config(func):

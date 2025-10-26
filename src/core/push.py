@@ -10,8 +10,8 @@ from ._data_preparer import PushedDataPreparer
 from ..config_manager.config import Config
 from ..protector import encrypt_file
 from ..constants import CHUNK_LENGTH_FOR_LARGE_FILE, STORED_PREPARED_FILE_PATHS
-from ..cloudmap.functions.config import get_cloud_channel_id
-from ..cloudmap.functions.cloudmap import update_cloudmap
+from ..config_manager.config_loader import get_cloud_channel_id
+from ..cloudmap import update_cloudmap
 from ..utils import (
     async_get_checksum,
     get_random_number,

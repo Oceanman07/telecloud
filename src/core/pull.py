@@ -10,8 +10,8 @@ from ._data_preparer import PulledDataPreparer
 from ..config_manager.config import Config
 from ..protector import decrypt_file
 from ..utils import read_file, read_file_in_chunk
-from ..cloudmap.functions.cloudmap import get_cloudmap
-from ..cloudmap.functions.config import get_cloud_channel_id
+from ..cloudmap import get_cloudmap
+from ..config_manager.config_loader import get_cloud_channel_id
 from ..constants import STORED_PREPARED_FILE_PATHS, CHUNK_LENGTH_FOR_LARGE_FILE
 
 # 8 upload/retrieve files at the time
