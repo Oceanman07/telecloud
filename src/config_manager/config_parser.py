@@ -9,6 +9,7 @@ from colorama import Fore
 from .config import Config
 from ..constants import CONFIG_PATH
 from ..cloudmap.functions.config import (
+    get_config,
     get_api_id,
     get_api_hash,
     get_default_pulled_directory,
@@ -146,7 +147,7 @@ def _parse_args():
         "-p",
         "--password",
         dest="password",
-        help="password for generating key to encrypt/decrypt file",
+        help="password for generating key to encrypt/decrypt file (the program will ask if not provided)",
     )
     general.add_argument(
         "-n",
@@ -215,12 +216,6 @@ def load_config():
     args = _parse_args()
 
     if args.command == "push":
-        if not args.target_path:
-            print(
-                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET}   Pushing requires an existing path"
-            )
-            exit()
-
         absolute_path = os.path.abspath(args.target_path)
         # pushing requires an existing file/dir path
         if not os.path.exists(absolute_path):
@@ -233,22 +228,23 @@ def load_config():
 
     elif args.command == "pull":
         if not args.target_path:
-            target_path = {"is_file": False, "value": get_default_pulled_directory()}
-            os.makedirs(get_default_pulled_directory(), exist_ok=True)
+            default_dir = get_default_pulled_directory()
+            target_path = {"is_file": False, "value": default_dir}
+            os.makedirs(default_dir, exist_ok=True)
         else:
-            absolute_directory_path = os.path.abspath(args.target_path)
-            if os.path.isdir(absolute_directory_path):
-                target_path = {"is_file": False, "value": absolute_directory_path}
+            absolute_path = os.path.abspath(args.target_path)
+            if os.path.isdir(absolute_path):
+                target_path = {"is_file": False, "value": absolute_path}
             else:
-                target_path = {"is_file": True, "value": absolute_directory_path}
+                target_path = {"is_file": True, "value": absolute_path}
 
     else:
-        # only pushing/and pulling command use target_path -> they do not touch it then target_path can be anything
+        # only pushing/pulling command uses target_path -> they do not touch it then target_path can be anything
         target_path = {}
 
     # check if the max_size arg is valid or not
     if (
-        args.max_size[-2:] not in ("KB", "MB", "GB")
+        args.max_size[-2:].upper() not in ("KB", "MB", "GB")
         or not (args.max_size[:-2]).strip().isdigit()
     ):
         print("Only accept KB, MB, GB. Ex: 1KB, 1 MB, 1  GB")
@@ -256,21 +252,21 @@ def load_config():
 
     # CONFIG_PATH does not exist means the program have not setup yet
     # in the setup step -> the password will be asked
-    # and list command does not need password
+    # and some commands may require the password
+    password = "No need yet"
     if not os.path.exists(CONFIG_PATH) or args.command == "list":
-        password = "No need yet"
-    else:
-        with open(CONFIG_PATH, "r") as f:
-            config = json.load(f)
+        pass
 
-        if args.password:
-            password = args.password
-        elif config["is_auto_fill_password"]["status"]:
-            password = config["is_auto_fill_password"]["value"]
-        elif args.is_auto_fill_password == "false":
-            password = "No need yet"
-        else:
-            password = getpass()
+    elif args.command == "config":
+        if args.new_password or args.is_auto_fill_password == "true":
+            password = _get_password(args)
+
+    elif args.command == "channel":
+        if args.new_cloudchannel or args.deleted_cloudchannel:
+            password = _get_password(args)
+
+    else:
+        password = _get_password(args)
 
     return Config(
         api_id=api_id,
@@ -299,6 +295,16 @@ def load_config():
         new_cloudchannel=_set_none_if_uncalled_attrib(args, "new_cloudchannel"),
         deleted_cloudchannel=_set_none_if_uncalled_attrib(args, "deleted_cloudchannel"),
     )
+
+
+def _get_password(args):
+    config = get_config()
+
+    if args.password:
+        return args.password
+    elif config["is_auto_fill_password"]["status"]:
+        return config["is_auto_fill_password"]["value"]
+    return getpass()
 
 
 def _set_none_if_uncalled_attrib(args, attrib_name):
