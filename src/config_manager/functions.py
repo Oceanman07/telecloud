@@ -149,6 +149,12 @@ async def delete_cloud_channel(client: TelegramClient, cloud_channel_name):
         )
         return
 
+    if cloud_channels[cloud_channel_name] == config["cloud_channel_id"]:
+        print(
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - {Fore.GREEN}{cloud_channel_name}{Fore.RESET} is being used"
+        )
+        return
+
     cloud_channel_id = cloud_channels[cloud_channel_name]
     await delete_channel(client, cloud_channel_id)
 
