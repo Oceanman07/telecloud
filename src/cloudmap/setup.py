@@ -4,7 +4,9 @@ from getpass import getpass
 
 from colorama import Style, Fore
 from telethon import TelegramClient
+from telethon.sessions import StringSession
 
+from .functions.config import update_config
 from .functions.cloudmap import create_cloudmap_db
 from ..tl import create_channel, set_channel_photo
 from .. import aes, rsa
@@ -14,7 +16,6 @@ from ..constants import (
     PULLED_DIR_IN_DESKTOP,
     PULLED_DIR_IN_DOCUMENTS,
     PULLED_DIR_IN_DOWNLOADS,
-    CONFIG_PATH,
     STRING_SESSION_PATH,
     STORED_CLOUDMAP_PATHS,
     INCLUDED_CLOUDMAP_PATHS,
@@ -57,8 +58,21 @@ def _get_password():
         return password
 
 
-async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
-    # This step is the very first step -> the blocking does not affect at all
+async def setup_cloudmap():
+    print(
+        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Setup your TeleCloud{Fore.RESET}"
+    )
+    api_id = int(input("Please enter your app api_id: "))
+    api_hash = input("Please enter your app api_hash: ")
+    print(
+        "[*] Your phone number must be [country code][your phone number]\n"
+        "    example: 840123456789 (84 is a coutry code and the rest is your phone)"
+    )
+
+    string_session = StringSession()
+
+    client = TelegramClient(string_session, api_id=api_id, api_hash=api_hash)
+    await client.start()
 
     # the container
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
@@ -95,7 +109,7 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
         password_for_main_symmetric_key, salt_for_main_symmetric_key
     )
 
-    encrypted_session = aes.encrypt(main_symmetric_key, session.encode())
+    encrypted_session = aes.encrypt(main_symmetric_key, string_session.save().encode())
     write_file(STRING_SESSION_PATH, encrypted_session)
 
     # public key, private key for encrypting/decrypting main_symmetric_key
@@ -130,7 +144,9 @@ async def setup_cloudmap(client: TelegramClient, session, api_id, api_hash):
         "pulled_directory": default_pulled_dir,
         "is_auto_fill_password": {"status": False, "value": None},
     }
-    write_file(CONFIG_PATH, config, mode="w", serialize=True)
+    update_config(config)
 
     await set_channel_photo(client, channel_id)
     print(f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Cloud channel created")
+
+    client.disconnect()

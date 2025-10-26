@@ -15,6 +15,10 @@ from src.cloudmap.setup import setup_cloudmap, check_health_cloudmap
 
 
 async def main():
+    if not check_health_cloudmap():
+        await setup_cloudmap()
+        return
+
     config = load_config()
 
     if config.command == "config":
@@ -41,17 +45,11 @@ async def main():
         )
         return
 
-    string_session = load_string_session(result["symmetric_key"])
-
     async with TelegramClient(
-        string_session, api_id=config.api_id, api_hash=config.api_hash
+        load_string_session(result["symmetric_key"]),
+        api_id=config.api_id,
+        api_hash=config.api_hash,
     ) as client:
-        if not check_health_cloudmap():
-            await setup_cloudmap(
-                client, string_session.save(), config.api_id, config.api_hash
-            )
-            return
-
         try:
             if config.command == "channel":
                 await set_cloud_channel_config(config, client)

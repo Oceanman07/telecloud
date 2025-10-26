@@ -9,9 +9,6 @@ from .cloudmap.functions.config import get_encrypted_symmetric_key
 
 
 def load_string_session(symmetric_key):
-    if not os.path.exists(STRING_SESSION_PATH):
-        return StringSession()
-
     encrypted_session = read_file(STRING_SESSION_PATH)
     session = aes.decrypt(symmetric_key, encrypted_session)
 

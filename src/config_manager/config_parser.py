@@ -199,20 +199,6 @@ def _parse_args():
 
 
 def load_config():
-    if not os.path.exists(CONFIG_PATH):
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Setup your TeleCloud{Fore.RESET}"
-        )
-        api_id = int(input("Please enter your app api_id: "))
-        api_hash = input("Please enter your app api_hash: ")
-        print(
-            "[*] Your phone number must be (telephone country code)+(your phone number)\n"
-            "For example: 840123456789 (84 is a coutry code and the rest is your phone)"
-        )
-    else:
-        api_id = get_api_id()
-        api_hash = get_api_hash()
-
     args = _parse_args()
 
     if args.command == "push":
@@ -269,8 +255,8 @@ def load_config():
         password = _get_password(args)
 
     return Config(
-        api_id=api_id,
-        api_hash=api_hash,
+        api_id=get_api_id(),
+        api_hash=get_api_hash(),
         command=args.command,
         target_path=target_path,
         password=password,
