@@ -19,7 +19,9 @@ from .constants import (
     STRING_SESSION_PATH,
     STORED_CLOUDMAP_PATHS,
     INCLUDED_CLOUDMAP_PATHS,
-    STORED_PREPARED_FILE_PATHS,
+    CACHE_PATH,
+    PREPARED_DATA_PATH_FOR_PUSHING,
+    PREPARED_DATA_PATH_FOR_PULLING,
 )
 
 
@@ -78,7 +80,9 @@ async def setup_telecloud():
     os.makedirs(STORED_CLOUDMAP_PATHS, exist_ok=True)
 
     # encrypted files before uploading or decrypting will be stored here
-    os.makedirs(STORED_PREPARED_FILE_PATHS, exist_ok=True)
+    os.makedirs(CACHE_PATH, exist_ok=True)
+    os.makedirs(PREPARED_DATA_PATH_FOR_PUSHING, exist_ok=True)
+    os.makedirs(PREPARED_DATA_PATH_FOR_PULLING, exist_ok=True)
 
     # configure default pulled directory
     print(

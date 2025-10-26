@@ -9,13 +9,19 @@ from .constants import (
     NONCE_LENGTH,
     TAG_LENGTH,
     CHUNK_LENGTH_FOR_LARGE_FILE,
-    STORED_PREPARED_FILE_PATHS,
+    PREPARED_DATA_PATH_FOR_PUSHING,
+    PREPARED_DATA_PATH_FOR_PULLING,
 )
 
 
-def clean_prepared_data():
-    for path in os.listdir(STORED_PREPARED_FILE_PATHS):
-        file_path = os.path.join(STORED_PREPARED_FILE_PATHS, path)
+def clean_prepared_data(command):
+    if command == "push":
+        dir_path = PREPARED_DATA_PATH_FOR_PUSHING
+    else:
+        dir_path = PREPARED_DATA_PATH_FOR_PULLING
+
+    for path in os.listdir(dir_path):
+        file_path = os.path.join(dir_path, path)
         os.remove(file_path)
 
 

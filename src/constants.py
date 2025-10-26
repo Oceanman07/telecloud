@@ -18,7 +18,9 @@ ENCRYPTED_PRIVATE_KEY_PATH = os.path.join(
     STORED_CLOUDMAP_PATHS, "encrypted_private_key.pem"
 )
 CONFIG_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "config.json")
-STORED_PREPARED_FILE_PATHS = os.path.join(STORED_CLOUDMAP_PATHS, "prepared_data")
+CACHE_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "cache")
+PREPARED_DATA_PATH_FOR_PUSHING = os.path.join(CACHE_PATH, "pushed_data")
+PREPARED_DATA_PATH_FOR_PULLING = os.path.join(CACHE_PATH, "pulled_data")
 STRING_SESSION_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "StringSession")
 CLOUDMAP_DB_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "cloudmap.db")
 INCLUDED_CLOUDMAP_PATHS = (STORED_CLOUDMAP_PATHS, CLOUDMAP_DB_PATH)

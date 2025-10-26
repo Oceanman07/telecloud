@@ -9,7 +9,7 @@ from telethon import TelegramClient
 from ._data_preparer import PushedDataPreparer
 from ..config_manager.config import Config
 from ..protector import encrypt_file
-from ..constants import CHUNK_LENGTH_FOR_LARGE_FILE, STORED_PREPARED_FILE_PATHS
+from ..constants import CHUNK_LENGTH_FOR_LARGE_FILE, PREPARED_DATA_PATH_FOR_PUSHING
 from ..config_manager.config_loader import get_cloud_channel_id
 from ..cloudmap import update_cloudmap
 from ..utils import (
@@ -41,7 +41,7 @@ async def _split_big_file(file_path):
 
         for encrypted_chunk in read_file_in_chunk(file_path, is_encrypted=True):
             file_part = os.path.join(
-                STORED_PREPARED_FILE_PATHS,
+                PREPARED_DATA_PATH_FOR_PUSHING,
                 str(part_num) + "_" + os.path.basename(file_path),
             )
             write_file(file_part, encrypted_chunk)
@@ -101,7 +101,7 @@ async def _upload_big_file(
 
     # upload_info just contains msg_id of file_parts then no need to encrypt
     upload_info_path = os.path.join(
-        STORED_PREPARED_FILE_PATHS, "0_" + os.path.basename(file_path)
+        PREPARED_DATA_PATH_FOR_PUSHING, "0_" + os.path.basename(file_path)
     )
     await asyncio.to_thread(write_file, upload_info_path, upload_info, "w", True)
     msg = await upload(upload_info_path)
@@ -124,7 +124,7 @@ async def _upload_file(
         # adding random number to prevent checksum name conflict > two different files could have the same data
         checksum = await async_get_checksum(file_path)
         encrypted_file_path = os.path.join(
-            STORED_PREPARED_FILE_PATHS,
+            PREPARED_DATA_PATH_FOR_PUSHING,
             # take the first 15 chars since somehow Telegram sometimes cuts the file name
             get_random_number() + "_" + checksum[:15],
         )

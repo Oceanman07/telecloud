@@ -53,6 +53,7 @@ async def main():
         try:
             if config.command == "channel":
                 await set_cloud_channel_config(config, client)
+                return
 
             elif config.command == "push":
                 await push_data(client, result["symmetric_key"], config)
@@ -65,7 +66,7 @@ async def main():
             for task in asyncio.all_tasks(loop):
                 task.cancel()
 
-    clean_prepared_data()
+    clean_prepared_data(config.command)
 
 
 if __name__ == "__main__":
