@@ -8,7 +8,7 @@ from telethon import TelegramClient
 from .config_loader import get_config
 from .. import aes, rsa
 from ..protector import load_symmetric_key
-from ..utils import write_file
+from ..utils import logging, write_file
 from ..constants import ENCRYPTED_PRIVATE_KEY_PATH, CONFIG_PATH
 from ..tl import create_channel, set_channel_photo, delete_channel
 from ..cloudmap import delete_pushed_files
@@ -35,9 +35,7 @@ def remove_password_from_config():
 def change_password(old_password, new_password):
     result = load_symmetric_key(old_password)
     if not result["success"]:
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - {result['error']}{Style.RESET_ALL}"
-        )
+        logging(f"{Fore.RED}Failed{Fore.RESET} - {result['error']}{Style.RESET_ALL}")
         return
 
     new_private_key, new_public_key = rsa.generate_keys()
@@ -58,31 +56,23 @@ def change_password(old_password, new_password):
     write_file(ENCRYPTED_PRIVATE_KEY_PATH, salt_for_private_key)
     write_file(ENCRYPTED_PRIVATE_KEY_PATH, new_encrypted_private_key, mode="ab")
 
-    print(
-        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Password has been changed {Fore.RESET}"
-    )
+    logging(f"{Fore.GREEN}Password has been changed{Fore.RESET}")
 
 
 def change_new_default_pulled_directory(new_directory):
     absolute_path = os.path.abspath(new_directory)
     if not os.path.exists(absolute_path):
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Directory path not found"
-        )
+        logging(f"{Fore.RED}Failed{Fore.RESET} - Directory path not found")
         return
     if not os.path.isdir(absolute_path):
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Not a directory"
-        )
+        logging(f"{Fore.RED}Failed{Fore.RESET} - Not a directory")
         return
 
     config = get_config()
     config["pulled_directory"] = absolute_path
     update_config(config)
 
-    print(
-        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Default pulled directory has been changed {Fore.RESET}"
-    )
+    logging(f"{Fore.GREEN}Default pulled directory has been changed{Fore.RESET}")
 
 
 def show_all_config_setting():
@@ -102,9 +92,7 @@ async def create_new_cloudchannel(client: TelegramClient):
     title = input("Title: ").strip()
 
     if title in config["cloud_channels"]:
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Cloud channel already exists"
-        )
+        logging(f"{Fore.RED}Failed{Fore.RESET} - Cloud channel already exists")
         return
 
     description = input("Description: ")
@@ -120,9 +108,7 @@ async def create_new_cloudchannel(client: TelegramClient):
     config["cloud_channels"][title] = channel_id
     update_config(config)
 
-    print(
-        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} New cloud channel created: {Fore.GREEN}{title}{Fore.RESET}"
-    )
+    logging(f"New cloud channel created: {Fore.GREEN}{title}{Fore.RESET}")
 
 
 def switch_cloud_channel(cloud_channel_name):
@@ -130,18 +116,14 @@ def switch_cloud_channel(cloud_channel_name):
     cloud_channels = config["cloud_channels"]
 
     if cloud_channel_name not in cloud_channels:
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Cloud channel not found"
-        )
+        logging(f"{Fore.RED}Failed{Fore.RESET} - Cloud channel not found")
         return
 
     switched_cloud_channel_id = cloud_channels[cloud_channel_name]
     config["cloud_channel_id"] = switched_cloud_channel_id
     update_config(config)
 
-    print(
-        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Switched to {Fore.GREEN}{cloud_channel_name}{Fore.RESET}"
-    )
+    logging(f"Switched to {Fore.GREEN}{cloud_channel_name}{Fore.RESET}")
 
 
 async def delete_cloud_channel(client: TelegramClient, cloud_channel_name):
@@ -149,14 +131,12 @@ async def delete_cloud_channel(client: TelegramClient, cloud_channel_name):
     cloud_channels = config["cloud_channels"]
 
     if cloud_channel_name not in cloud_channels:
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Cloud channel not found"
-        )
+        logging(f"{Fore.RED}Failed{Fore.RESET} - Cloud channel not found")
         return
 
     if cloud_channels[cloud_channel_name] == config["cloud_channel_id"]:
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - {Fore.GREEN}{cloud_channel_name}{Fore.RESET} is being used"
+        logging(
+            f"{Fore.RED}Failed{Fore.RESET} - {Fore.GREEN}{cloud_channel_name}{Fore.RESET} is being used"
         )
         return
 
@@ -168,9 +148,7 @@ async def delete_cloud_channel(client: TelegramClient, cloud_channel_name):
     config["cloud_channels"].pop(cloud_channel_name)
     update_config(config)
 
-    print(
-        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Deleted {Fore.GREEN}{cloud_channel_name}{Fore.RESET}"
-    )
+    logging(f"Deleted {Fore.GREEN}{cloud_channel_name}{Fore.RESET}")
 
 
 def show_all_cloud_channels():

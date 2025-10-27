@@ -1,13 +1,12 @@
 import asyncio
-import time
 
-from colorama import Style, Fore
+from colorama import Fore
 from telethon import TelegramClient
 
 from src.config_manager.config_parser import parse_config
 from src.protector import load_symmetric_key
 from src.tl import load_string_session
-from src.utils import clean_prepared_data
+from src.utils import logging, clean_prepared_data
 from src.core.config_setting import set_general_config, set_cloud_channel_config
 from src.core.listing import list_pushed_files
 from src.core.push import push_data
@@ -41,9 +40,7 @@ async def main():
 
     result = load_symmetric_key(config.password)
     if not result["success"]:
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - {result['error']}{Style.RESET_ALL}"
-        )
+        logging(f"{Fore.RED}Failed{Fore.RESET} - {result['error']}")
         return
 
     async with TelegramClient(

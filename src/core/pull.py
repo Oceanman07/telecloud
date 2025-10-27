@@ -1,7 +1,6 @@
 import os
 import asyncio
 import threading
-import time
 
 from colorama import Fore
 from telethon import TelegramClient
@@ -9,7 +8,7 @@ from telethon import TelegramClient
 from ._data_preparer import PulledDataPreparer
 from ..config_manager.config import Config
 from ..protector import decrypt_file
-from ..utils import read_file, read_file_in_chunk
+from ..utils import logging, read_file, read_file_in_chunk
 from ..cloudmap import get_cloudmap
 from ..config_manager.config_loader import get_cloud_channel_id
 from ..constants import CHUNK_LENGTH_FOR_LARGE_FILE, PREPARED_DATA_PATH_FOR_PULLING
@@ -107,9 +106,8 @@ async def _download_file(
     client: TelegramClient, cloud_channel, symmetric_key, file, is_single_file=False
 ):
     async with SEMAPHORE:
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.YELLOW} Pulling{Fore.RESET} {file['saved_path']}"
-        )
+        logging(f"{Fore.YELLOW}Pulling{Fore.RESET} {file['saved_path']}")
+
         try:
             if file["file_size"] < CHUNK_LENGTH_FOR_LARGE_FILE:
                 file_from_cloud = await _download_small_file(
@@ -154,20 +152,19 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
                 file["msg_id"] = pushed_file["msg_id"]
                 file["file_size"] = pushed_file["file_size"]
                 file["saved_path"] = os.path.abspath(file_name)
+
                 try:
                     result = await _download_file(
                         client, cloud_channel, symmetric_key, file, is_single_file=True
                     )
-                    print(
-                        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Fore.RESET}   {result}"
-                    )
+                    logging(f"{Fore.GREEN}Pulled{Fore.RESET}   {result}")
                     return
+
                 except asyncio.exceptions.CancelledError:
                     return
+
         # file name not found
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET}  Pushed file not found"
-        )
+        logging(f"{Fore.RED}Failed{Fore.RESET} - Pushed file not found")
 
     else:
         prepared_data = PulledDataPreparer(
@@ -187,10 +184,9 @@ async def pull_data(client: TelegramClient, symmetric_key, config: Config):
             try:
                 result = await task
                 count += 1
-                print(
-                    f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pulled{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result}"
+                logging(
+                    f"{Fore.GREEN}Pulled{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result}"
                 )
-
             except asyncio.exceptions.CancelledError:
                 # This exception raises when pressing Ctrl+C to stop the program
                 # which cancels all the coros -> return to stop immediately (no need to iterate the rest)

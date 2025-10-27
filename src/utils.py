@@ -1,9 +1,12 @@
 import os
+import time
 import asyncio
 import threading
 import json
 import hashlib
 import random
+
+from colorama import Fore
 
 from .constants import (
     NONCE_LENGTH,
@@ -23,6 +26,12 @@ def clean_prepared_data(command):
     for path in os.listdir(dir_path):
         file_path = os.path.join(dir_path, path)
         os.remove(file_path)
+
+
+def logging(msg):
+    print(
+        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} {msg}",
+    )
 
 
 def get_random_number():

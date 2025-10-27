@@ -1,5 +1,4 @@
 import os
-import time
 from getpass import getpass
 
 from colorama import Style, Fore
@@ -7,7 +6,7 @@ from telethon import TelegramClient
 from telethon.sessions import StringSession
 
 from . import aes, rsa
-from .utils import write_file
+from .utils import logging, write_file
 from .cloudmap import create_cloudmap_db
 from .tl import create_channel, set_channel_photo
 from .config_manager.functions import update_config
@@ -52,18 +51,15 @@ def _get_password():
     while True:
         confirm = getpass("Confirm:\n>: ")
         if password != confirm:
-            print(
-                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Password does not match"
-            )
+            logging(f"{Fore.RED}Failed{Fore.RESET} - Password does not match")
             continue
 
         return password
 
 
 async def setup_telecloud():
-    print(
-        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Setup your TeleCloud{Fore.RESET}"
-    )
+    logging(f"{Fore.GREEN}Setup your TeleCloud{Fore.RESET}")
+
     api_id = int(input("Please enter your app api_id: "))
     api_hash = input("Please enter your app api_hash: ")
     print(
@@ -85,11 +81,9 @@ async def setup_telecloud():
     os.makedirs(PREPARED_DATA_PATH_FOR_PULLING, exist_ok=True)
 
     # configure default pulled directory
+    logging(f"{Fore.GREEN}Configure your default pulled directory{Fore.RESET}")
     print(
-        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Configure your default pulled directory{Fore.RESET}\n"
-        f"Your files will be downloaded and stored here if not provided a specific directory when pulling all files"
-    )
-    print(
+        "Your files will be downloaded and stored here if not provided a specific directory when pulling all files\n"
         f"[1] {PULLED_DIR_IN_DESKTOP}\n"
         f"[2] {PULLED_DIR_IN_DOCUMENTS}\n"
         f"[3] {PULLED_DIR_IN_DOWNLOADS}"
@@ -97,8 +91,8 @@ async def setup_telecloud():
     default_pulled_dir = _get_default_pulled_directory()
 
     # password for encrypting/decrypting private key
-    print(
-        f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Configure your password for encrypting/decrypting files{Fore.RESET}"
+    logging(
+        f"{Fore.GREEN}Configure your password for encrypting/decrypting files{Fore.RESET}"
     )
     print(
         f"Remember! {Style.BRIGHT}One password{Style.RESET_ALL} to rule them all, {Style.BRIGHT}One Password{Style.RESET_ALL} to find them, {Style.BRIGHT}One Password{Style.RESET_ALL} to bring them all, and in case you forget you might {Style.BRIGHT}lose{Style.RESET_ALL} them all. So, choose wisely!"
@@ -151,6 +145,6 @@ async def setup_telecloud():
     update_config(config)
 
     await set_channel_photo(client, channel_id)
-    print(f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RESET} Cloud channel created")
+    logging("Cloud channel created")
 
     client.disconnect()

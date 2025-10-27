@@ -13,6 +13,7 @@ from ..constants import CHUNK_LENGTH_FOR_LARGE_FILE, PREPARED_DATA_PATH_FOR_PUSH
 from ..config_manager.config_loader import get_cloud_channel_id
 from ..cloudmap import update_cloudmap
 from ..utils import (
+    logging,
     async_get_checksum,
     get_random_number,
     write_file,
@@ -117,9 +118,8 @@ async def _upload_file(
     is_single_file=False,
 ):
     async with SEMAPHORE:
-        print(
-            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.YELLOW} Pushing{Fore.RESET} {file_path}"
-        )
+        logging(f"{Fore.YELLOW}Pushing{Fore.RESET} {file_path}")
+
         # checksum is now the name of encrypted file -> prevent long file name from reaching over 255 chars
         # adding random number to prevent checksum name conflict > two different files could have the same data
         checksum = await async_get_checksum(file_path)
@@ -185,9 +185,8 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
             result["channel_id"] = channel_id
             await update_cloudmap(result)
 
-            print(
-                f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Fore.RESET}   {result['file_path']}"
-            )
+            logging(f"{Fore.GREEN}Pushed{Fore.RESET}   {result['file_path']}")
+
         except asyncio.exceptions.CancelledError:
             return
 
@@ -215,10 +214,9 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
                 await update_cloudmap(result)
 
                 count += 1
-                print(
-                    f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.GREEN} Pushed{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path']}"
+                logging(
+                    f"{Fore.GREEN}Pushed{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path']}"
                 )
-
             except asyncio.exceptions.CancelledError:
                 # This exception raises when pressing Ctrl+C to stop the program
                 # which cancels all the coros -> return to stop immediately (no need to iterate the rest)
