@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import argparse
 from getpass import getpass
@@ -198,6 +199,32 @@ def _parse_args():
 
 
 def parse_config():
+    if len(sys.argv) == 1:
+        print("usage: tc -h")
+        exit()
+    elif sys.argv[1] not in (
+        "-h",
+        "push",
+        "pull",
+        "config",
+        "list",
+        "channel",
+        "-p",
+        "--password",
+        "-n",
+        "--in-name",
+        "-ed",
+        "--excluded-dir",
+        "-ef",
+        "--excluded-file",
+        "-es",
+        "--excluded-file-suffix",
+        "-ms",
+        "--max-size",
+    ):
+        print("usage: tc -h")
+        exit()
+
     args = _parse_args()
 
     if args.command == "push":
