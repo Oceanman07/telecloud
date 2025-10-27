@@ -17,7 +17,7 @@ from .config_loader import (
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        usage="tc [options] [command] [target_path only for push/pull]",
+        usage="tc [options] [command] [path (for push/pull)] ",
         epilog=(
             "for more convienent you might need to run this command:\n"
             "   `tc -p your_password config --autofill-password true`\n"
@@ -85,7 +85,7 @@ def _parse_args():
         "config",
         usage="tc config [options]",
         description="if options not provided, all config settings will be listed",
-        help="show or set config options",
+        help="list or set config options",
     )
     config.add_argument(
         "--autofill-password",
@@ -191,13 +191,13 @@ def _parse_args():
         "--max-size",
         dest="max_size",
         default="2GB",
-        help="the maxinum allowed size of a file\nexample:\n   -ms 2KB or -ms 30MB or -ms 4GB",
+        help="the maxinum allowed size of a file (only accept KB, MB, GB)\nexample:\n   -ms 2KB or -ms 30MB or -ms 4GB",
     )
 
     return parser.parse_args()
 
 
-def load_config():
+def parse_config():
     args = _parse_args()
 
     if args.command == "push":
@@ -232,7 +232,9 @@ def load_config():
         args.max_size[-2:].upper() not in ("KB", "MB", "GB")
         or not (args.max_size[:-2]).strip().isdigit()
     ):
-        print("Only accept KB, MB, GB. Ex: 1KB, 1 MB, 1  GB")
+        print(
+            f"{Fore.BLUE}{time.strftime('%H:%M:%S')}{Fore.RED} Failed{Fore.RESET} - Invalid bytes unit"
+        )
         exit()
 
     # CONFIG_PATH does not exist means the program have not setup yet

@@ -2,9 +2,15 @@ import os
 import asyncio
 import threading
 
-from . import aes
+from . import aes, rsa
 from .utils import read_file, read_file_in_chunk, write_file
-from .constants import NONCE_LENGTH, TAG_LENGTH, CHUNK_LENGTH_FOR_LARGE_FILE
+from .config_manager.config_loader import get_encrypted_symmetric_key
+from .constants import (
+    NONCE_LENGTH,
+    TAG_LENGTH,
+    CHUNK_LENGTH_FOR_LARGE_FILE,
+    ENCRYPTED_PRIVATE_KEY_PATH,
+)
 
 
 async def encrypt_file(key, src_path, dns_path):
@@ -75,3 +81,19 @@ async def decrypt_file(key, src_path, dns_path):
     decryption_thread.start()
 
     return await future
+
+
+def load_symmetric_key(password):
+    with open(ENCRYPTED_PRIVATE_KEY_PATH, "rb") as f:
+        salt = f.read(32)
+        encrypted_private_key = f.read()
+
+    symmetric_key_for_private_key = aes.generate_key(password, salt)
+    try:
+        private_key = aes.decrypt(symmetric_key_for_private_key, encrypted_private_key)
+    except ValueError:
+        return {"success": False, "error": "Invalid password"}
+
+    encrypted_main_symmetric_key = bytes.fromhex(get_encrypted_symmetric_key())
+    main_symmetric_key = rsa.decrypt(private_key, encrypted_main_symmetric_key)
+    return {"success": True, "symmetric_key": main_symmetric_key}

@@ -4,8 +4,9 @@ import time
 from colorama import Style, Fore
 from telethon import TelegramClient
 
-from src.config_manager.config_parser import load_config
-from src.loaders import load_symmetric_key, load_string_session
+from src.config_manager.config_parser import parse_config
+from src.protector import load_symmetric_key
+from src.tl import load_string_session
 from src.utils import clean_prepared_data
 from src.core.config_setting import set_general_config, set_cloud_channel_config
 from src.core.listing import list_pushed_files
@@ -19,7 +20,7 @@ async def main():
         await setup_telecloud()
         return
 
-    config = load_config()
+    config = parse_config()
 
     if config.command == "config":
         set_general_config(config)

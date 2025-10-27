@@ -7,7 +7,7 @@ from telethon import TelegramClient
 
 from .config_loader import get_config
 from .. import aes, rsa
-from ..loaders import load_symmetric_key
+from ..protector import load_symmetric_key
 from ..utils import write_file
 from ..constants import ENCRYPTED_PRIVATE_KEY_PATH, CONFIG_PATH
 from ..tl import create_channel, set_channel_photo, delete_channel
