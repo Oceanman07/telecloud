@@ -23,6 +23,7 @@ class Config:
         in_name,
         max_size,
         is_auto_fill_password,
+        zip_file,
     ):
         self.__api_id = api_id
         self.__api_hash = api_hash
@@ -41,6 +42,7 @@ class Config:
         self.__in_name = in_name
         self.__max_size = max_size
         self.__is_auto_fill_password = is_auto_fill_password
+        self.__zip_file = zip_file
 
     @property
     def api_id(self):
@@ -111,3 +113,7 @@ class Config:
     @property
     def is_auto_fill_password(self):
         return self.__is_auto_fill_password
+
+    @property
+    def zip_file(self):
+        return self.__zip_file

@@ -59,6 +59,13 @@ def _parse_args():
         action="store_true",
         help="process recursively subdirectories",
     )
+    push.add_argument(
+        "-z",
+        "--zip",
+        dest="zip_file",
+        action="store_true",
+        help="zip the entire directory into a file",
+    )
 
     # pulling command
     pull = subparsers.add_parser(
@@ -308,6 +315,7 @@ def parse_config():
         excluded_files=_set_none_if_uncalled_attrib(args, "excluded_files"),
         new_cloudchannel=_set_none_if_uncalled_attrib(args, "new_cloudchannel"),
         deleted_cloudchannel=_set_none_if_uncalled_attrib(args, "deleted_cloudchannel"),
+        zip_file=_set_none_if_uncalled_attrib(args, "zip_file"),
     )
 
 
@@ -346,3 +354,5 @@ def _set_none_if_uncalled_attrib(args, attrib_name):
         return args.max_size if attrib_name in args else None
     elif attrib_name == "is_auto_fill_password":
         return args.is_auto_fill_password if attrib_name in args else None
+    elif attrib_name == "zip_file":
+        return args.zip_file if attrib_name in args else None

@@ -2,6 +2,7 @@ import os
 import asyncio
 import threading
 import time
+from zipfile import ZipFile
 
 from colorama import Fore
 from telethon import TelegramClient
@@ -168,6 +169,15 @@ async def _upload_file(
         }
 
 
+async def _zip_file(zip_file, file_paths):
+    def zip():
+        with ZipFile(zip_file, "w") as zip:
+            for file in file_paths:
+                zip.write(file)
+
+    await asyncio.to_thread(zip)
+
+
 async def push_data(client: TelegramClient, symmetric_key, config: Config):
     channel_id = get_cloud_channel_id()
     cloud_channel = await client.get_entity(channel_id)
@@ -201,23 +211,48 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
             is_recursive=config.is_recursive,
         ).prepare()
 
-        tasks = [
-            _upload_file(client, cloud_channel, symmetric_key, file_path)
-            for file_path in prepared_data
-        ]
-
-        count = 0
-        for task in asyncio.as_completed(tasks):
-            try:
-                result = await task
-                result["channel_id"] = channel_id
-                await update_cloudmap(result)
-
-                count += 1
-                logging(
-                    f"{Fore.GREEN}Pushed{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path']}"
+        if config.zip_file:
+            zip_file = (
+                os.path.join(
+                    PREPARED_DATA_PATH_FOR_PUSHING,
+                    os.path.basename(config.target_path["value"]),
                 )
-            except asyncio.exceptions.CancelledError:
-                # This exception raises when pressing Ctrl+C to stop the program
-                # which cancels all the coros -> return to stop immediately (no need to iterate the rest)
-                return
+                + ".zip"
+            )
+            await _zip_file(zip_file, prepared_data)
+            result = await _upload_file(
+                client,
+                cloud_channel,
+                symmetric_key,
+                zip_file,
+                is_single_file=True,
+            )
+
+            result["channel_id"] = channel_id
+            await update_cloudmap(result)
+
+            os.remove(zip_file)
+
+            logging(f"{Fore.GREEN}Pushed{Fore.RESET}   {result['file_path']}")
+
+        else:
+            tasks = [
+                _upload_file(client, cloud_channel, symmetric_key, file_path)
+                for file_path in prepared_data
+            ]
+
+            count = 0
+            for task in asyncio.as_completed(tasks):
+                try:
+                    result = await task
+                    result["channel_id"] = channel_id
+                    await update_cloudmap(result)
+
+                    count += 1
+                    logging(
+                        f"{Fore.GREEN}Pushed{Fore.RESET} {str(count).zfill(len(str(len(tasks))))}/{len(tasks)}   {result['file_path']}"
+                    )
+                except asyncio.exceptions.CancelledError:
+                    # This exception raises when pressing Ctrl+C to stop the program
+                    # which cancels all the coros -> return to stop immediately (no need to iterate the rest)
+                    return
