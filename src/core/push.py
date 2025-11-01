@@ -169,11 +169,14 @@ async def _upload_file(
         }
 
 
-async def _zip_file(zip_file, file_paths):
+async def _zip_file(dir_path, zip_file, file_paths):
     def zip():
         with ZipFile(zip_file, "w") as zip:
             for file in file_paths:
-                zip.write(file, arcname=os.path.relpath(file))
+                zip.write(
+                    file,
+                    arcname=os.path.relpath(file, start=dir_path),
+                )
 
     await asyncio.to_thread(zip)
 
@@ -217,7 +220,7 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
                 zip_file = os.path.join(PREPARED_DATA_PATH_FOR_PUSHING, zip_name)
                 logging(f"{Fore.YELLOW}Zipping{Fore.RESET}  {zip_name}")
 
-                await _zip_file(zip_file, prepared_data)
+                await _zip_file(config.target_path["value"], zip_file, prepared_data)
                 logging(f"{Fore.GREEN}Zipped{Fore.RESET}   {zip_name}")
 
                 result = await _upload_file(
