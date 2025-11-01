@@ -119,7 +119,7 @@ async def _upload_file(
     is_single_file=False,
 ):
     async with SEMAPHORE:
-        logging(f"{Fore.YELLOW}Pushing{Fore.RESET} {file_path}")
+        logging(f"{Fore.YELLOW}Pushing{Fore.RESET}  {file_path}")
 
         # checksum is now the name of encrypted file -> prevent long file name from reaching over 255 chars
         # adding random number to prevent checksum name conflict > two different files could have the same data
@@ -173,7 +173,7 @@ async def _zip_file(zip_file, file_paths):
     def zip():
         with ZipFile(zip_file, "w") as zip:
             for file in file_paths:
-                zip.write(file)
+                zip.write(file, arcname=os.path.relpath(file))
 
     await asyncio.to_thread(zip)
 
@@ -212,28 +212,31 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
         ).prepare()
 
         if config.zip_file:
-            zip_file = (
-                os.path.join(
-                    PREPARED_DATA_PATH_FOR_PUSHING,
-                    os.path.basename(config.target_path["value"]),
+            try:
+                zip_name = os.path.basename(config.target_path["value"]) + ".zip"
+                zip_file = os.path.join(PREPARED_DATA_PATH_FOR_PUSHING, zip_name)
+                logging(f"{Fore.YELLOW}Zipping{Fore.RESET}  {zip_name}")
+
+                await _zip_file(zip_file, prepared_data)
+                logging(f"{Fore.GREEN}Zipped{Fore.RESET}   {zip_name}")
+
+                result = await _upload_file(
+                    client,
+                    cloud_channel,
+                    symmetric_key,
+                    zip_file,
+                    is_single_file=True,
                 )
-                + ".zip"
-            )
-            await _zip_file(zip_file, prepared_data)
-            result = await _upload_file(
-                client,
-                cloud_channel,
-                symmetric_key,
-                zip_file,
-                is_single_file=True,
-            )
 
-            result["channel_id"] = channel_id
-            await update_cloudmap(result)
+                result["channel_id"] = channel_id
+                await update_cloudmap(result)
 
-            os.remove(zip_file)
+                os.remove(zip_file)
 
-            logging(f"{Fore.GREEN}Pushed{Fore.RESET}   {result['file_path']}")
+                logging(f"{Fore.GREEN}Pushed{Fore.RESET}   {result['file_path']}")
+
+            except asyncio.exceptions.CancelledError:
+                return
 
         else:
             tasks = [

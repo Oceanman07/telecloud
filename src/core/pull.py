@@ -106,7 +106,7 @@ async def _download_file(
     client: TelegramClient, cloud_channel, symmetric_key, file, is_single_file=False
 ):
     async with SEMAPHORE:
-        logging(f"{Fore.YELLOW}Pulling{Fore.RESET} {file['saved_path']}")
+        logging(f"{Fore.YELLOW}Pulling{Fore.RESET}  {file['saved_path']}")
 
         try:
             if file["file_size"] < CHUNK_LENGTH_FOR_LARGE_FILE:

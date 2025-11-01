@@ -64,7 +64,7 @@ def _parse_args():
         "--zip",
         dest="zip_file",
         action="store_true",
-        help="zip the entire directory into a file",
+        help="zip the entire directory into a zip file",
     )
 
     # pulling command
