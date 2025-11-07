@@ -66,6 +66,13 @@ def _parse_args():
         action="store_true",
         help="zip the entire directory into a zip file",
     )
+    push.add_argument(
+        "-f",
+        "--force",
+        dest="force",
+        action="store_true",
+        help="force to push remained files",
+    )
 
     # pulling command
     pull = subparsers.add_parser(
@@ -310,6 +317,7 @@ def parse_config():
         in_name=_set_none_if_uncalled_attrib(args, "in_name"),
         max_size=_set_none_if_uncalled_attrib(args, "max_size"),
         is_recursive=_set_none_if_uncalled_attrib(args, "is_recursive"),
+        force=_set_none_if_uncalled_attrib(args, "force"),
         new_password=_set_none_if_uncalled_attrib(args, "new_password"),
         excluded_dirs=_set_none_if_uncalled_attrib(args, "excluded_dirs"),
         excluded_files=_set_none_if_uncalled_attrib(args, "excluded_files"),
@@ -348,6 +356,8 @@ def _set_none_if_uncalled_attrib(args, attrib_name):
         return args.excluded_file_suffixes if attrib_name in args else None
     elif attrib_name == "is_recursive":
         return args.is_recursive if attrib_name in args else None
+    elif attrib_name == "force":
+        return args.force if attrib_name in args else None
     elif attrib_name == "in_name":
         return args.in_name if attrib_name in args else None
     elif attrib_name == "max_size":

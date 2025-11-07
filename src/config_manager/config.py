@@ -17,6 +17,7 @@ class Config:
         switched_cloudchannel,
         deleted_cloudchannel,
         is_recursive,
+        force,
         excluded_dirs,
         excluded_files,
         excluded_file_suffixes,
@@ -36,6 +37,7 @@ class Config:
         self.__switched_cloudchannel = switched_cloudchannel
         self.__deleted_cloudchannel = deleted_cloudchannel
         self.__is_recursive = is_recursive
+        self.__force = force
         self.__excluded_dirs = excluded_dirs
         self.__excluded_files = excluded_files
         self.__excluded_file_suffixes = excluded_file_suffixes
@@ -87,6 +89,10 @@ class Config:
     @property
     def is_recursive(self):
         return self.__is_recursive
+
+    @property
+    def force(self):
+        return self.__force
 
     @property
     def excluded_dirs(self):

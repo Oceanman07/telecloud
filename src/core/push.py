@@ -212,6 +212,7 @@ async def push_data(client: TelegramClient, symmetric_key, config: Config):
             max_size=config.max_size,
             in_name=config.in_name,
             is_recursive=config.is_recursive,
+            force=config.force,
         ).prepare()
 
         if config.zip_file:

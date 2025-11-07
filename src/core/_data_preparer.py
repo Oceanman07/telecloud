@@ -59,6 +59,7 @@ class PushedDataPreparer(DataFilter):
         max_size,
         in_name,
         is_recursive,
+        force,
     ):
         super().__init__(
             excluded_dirs,
@@ -69,6 +70,7 @@ class PushedDataPreparer(DataFilter):
         )
         self.__root_directory = root_directory
         self.__is_recursive = is_recursive
+        self.__force = force
 
     def prepare(self):
         pushed_file_paths = get_pushed_file_paths()
@@ -89,6 +91,10 @@ class PushedDataPreparer(DataFilter):
                 if not self.is_valid_size(os.path.getsize(file_path)):
                     continue
                 if not self.is_match_in_name(file_name):
+                    continue
+
+                if self.__force:
+                    file_paths.append(file_path)
                     continue
 
                 if file_path not in pushed_file_paths:
