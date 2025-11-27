@@ -1,4 +1,5 @@
 import os
+import socket
 import time
 import asyncio
 import threading
@@ -15,6 +16,17 @@ from .constants import (
     PREPARED_DATA_PATH_FOR_PUSHING,
     PREPARED_DATA_PATH_FOR_PULLING,
 )
+
+
+def check_network_connection():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.connect(("1.1.1.1", 80))
+        return True
+    except OSError:
+        return False
+    finally:
+        sock.close()
 
 
 def clean_prepared_data(command):

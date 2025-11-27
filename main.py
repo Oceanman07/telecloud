@@ -6,7 +6,7 @@ from telethon import TelegramClient
 from src.config_manager.config_parser import parse_config
 from src.protector import load_symmetric_key
 from src.tl import load_string_session
-from src.utils import logging, clean_prepared_data
+from src.utils import logging, clean_prepared_data, check_network_connection
 from src.core.config_setting import set_general_config, set_cloud_channel_config
 from src.core.listing import list_pushed_files
 from src.core.push import push_data
@@ -36,6 +36,11 @@ async def main():
 
     elif config.command == "list":
         list_pushed_files(config)
+        return
+
+    # network must be reachable to perform TelegramClient
+    if not check_network_connection():
+        logging(f"{Fore.RED}Failed{Fore.RESET} - Network error")
         return
 
     result = load_symmetric_key(config.password)
