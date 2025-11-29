@@ -1,4 +1,3 @@
-import os
 import socket
 import time
 import asyncio
@@ -6,6 +5,7 @@ import threading
 import json
 import hashlib
 import random
+import shutil
 
 from colorama import Fore
 
@@ -13,8 +13,7 @@ from .constants import (
     NONCE_LENGTH,
     TAG_LENGTH,
     CHUNK_LENGTH_FOR_LARGE_FILE,
-    PREPARED_DATA_PATH_FOR_PUSHING,
-    PREPARED_DATA_PATH_FOR_PULLING,
+    PREPARED_DATA_CACHE_PATH,
 )
 
 
@@ -29,15 +28,8 @@ def check_network_connection():
         sock.close()
 
 
-def clean_prepared_data(command):
-    if command == "push":
-        dir_path = PREPARED_DATA_PATH_FOR_PUSHING
-    else:
-        dir_path = PREPARED_DATA_PATH_FOR_PULLING
-
-    for path in os.listdir(dir_path):
-        file_path = os.path.join(dir_path, path)
-        os.remove(file_path)
+def clean_prepared_data():
+    shutil.rmtree(PREPARED_DATA_CACHE_PATH)
 
 
 def logging(msg):

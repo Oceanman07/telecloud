@@ -69,7 +69,7 @@ async def main():
             for task in asyncio.all_tasks(loop):
                 task.cancel()
 
-    clean_prepared_data(config.command)
+    clean_prepared_data()
 
 
 if __name__ == "__main__":

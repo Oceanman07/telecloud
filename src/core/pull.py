@@ -11,7 +11,7 @@ from ..protector import decrypt_file
 from ..utils import logging, read_file, read_file_in_chunk
 from ..cloudmap import get_cloudmap
 from ..config_manager.config_loader import get_cloud_channel_id
-from ..constants import CHUNK_LENGTH_FOR_LARGE_FILE, PREPARED_DATA_PATH_FOR_PULLING
+from ..constants import CHUNK_LENGTH_FOR_LARGE_FILE, PREPARED_DATA_CACHE_PATH
 
 # 8 upload/retrieve files at the time
 SEMAPHORE = asyncio.Semaphore(8)
@@ -20,7 +20,7 @@ SEMAPHORE = asyncio.Semaphore(8)
 async def _download_small_file(client: TelegramClient, cloud_channel, msg_id):
     msg = await client.get_messages(cloud_channel, ids=msg_id)
     file_from_cloud = os.path.join(
-        PREPARED_DATA_PATH_FOR_PULLING, msg.document.attributes[0].file_name
+        PREPARED_DATA_CACHE_PATH, msg.document.attributes[0].file_name
     )
     await client.download_file(msg.document, file=file_from_cloud, part_size_kb=512)
 
@@ -37,14 +37,14 @@ async def _merge_file_parts(file_parts):
             any_file_part_name.index("_") + 1 :
         ]
         merged_file = os.path.join(
-            PREPARED_DATA_PATH_FOR_PULLING,
+            PREPARED_DATA_CACHE_PATH,
             any_file_part_name_without_num,
         )
 
         with open(merged_file, "wb") as f:
             for i in range(1, len(file_parts) + 1):
                 file_part = os.path.join(
-                    PREPARED_DATA_PATH_FOR_PULLING,
+                    PREPARED_DATA_CACHE_PATH,
                     str(i) + "_" + any_file_part_name_without_num,
                 )
                 for encrypted_chunk in read_file_in_chunk(file_part, is_encrypted=True):
@@ -73,7 +73,7 @@ async def _download_big_file(
             try:
                 msg = await client.get_messages(cloud_channel, ids=id)
                 file_from_cloud = os.path.join(
-                    PREPARED_DATA_PATH_FOR_PULLING, msg.document.attributes[0].file_name
+                    PREPARED_DATA_CACHE_PATH, msg.document.attributes[0].file_name
                 )
                 await client.download_file(
                     msg.document, file=file_from_cloud, part_size_kb=512
@@ -140,6 +140,8 @@ async def _download_file(
 
 
 async def pull_data(client: TelegramClient, symmetric_key, config: Config):
+    os.makedirs(PREPARED_DATA_CACHE_PATH)
+
     cloud_channel = await client.get_entity(get_cloud_channel_id())
 
     if config.target_path["is_file"]:

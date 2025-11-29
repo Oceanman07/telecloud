@@ -1,4 +1,6 @@
 import os
+import datetime
+
 
 _HOME_DIR = os.path.expanduser("~")
 
@@ -19,8 +21,8 @@ ENCRYPTED_PRIVATE_KEY_PATH = os.path.join(
 )
 CONFIG_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "config.json")
 CACHE_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "cache")
-PREPARED_DATA_PATH_FOR_PUSHING = os.path.join(CACHE_PATH, "pushed_data")
-PREPARED_DATA_PATH_FOR_PULLING = os.path.join(CACHE_PATH, "pulled_data")
+CURRENT_TIMESTAMP = str(datetime.datetime.now().timestamp())
+PREPARED_DATA_CACHE_PATH = os.path.join(CACHE_PATH, CURRENT_TIMESTAMP)
 STRING_SESSION_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "StringSession")
 CLOUDMAP_DB_PATH = os.path.join(STORED_CLOUDMAP_PATHS, "cloudmap.db")
 INCLUDED_CLOUDMAP_PATHS = (STORED_CLOUDMAP_PATHS, CLOUDMAP_DB_PATH)
