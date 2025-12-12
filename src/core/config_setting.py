@@ -5,7 +5,7 @@ from ..config_manager.functions import (
     change_password,
     change_new_default_pulled_directory,
     show_all_config_setting,
-    create_new_cloudchannel,
+    create_new_cloud_channel,
     switch_cloud_channel,
     delete_cloud_channel,
     show_all_cloud_channels,
@@ -31,7 +31,7 @@ def set_general_config(config: Config):
 
 async def set_cloud_channel_config(config: Config, client=None):
     if config.new_cloudchannel:
-        await create_new_cloudchannel(client)
+        await create_new_cloud_channel(client)
 
     elif config.switched_cloudchannel:
         switch_cloud_channel(config.switched_cloudchannel)

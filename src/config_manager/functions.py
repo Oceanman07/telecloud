@@ -86,7 +86,7 @@ def show_all_config_setting():
             print(f"+ {Fore.GREEN}{key}{Fore.RESET}: {config[key]}")
 
 
-async def create_new_cloudchannel(client: TelegramClient):
+async def create_new_cloud_channel(client: TelegramClient):
     config = get_config()
 
     title = input("Title: ").strip()
@@ -162,3 +162,14 @@ def show_all_cloud_channels():
             print(f"* {Fore.GREEN}{channel_name}{Fore.RESET}")
         else:
             print(f"  {channel_name}")
+
+
+def get_current_cloud_channel():
+    config = get_config()
+
+    current_channel_id = config["cloud_channel_id"]
+
+    for channel_name in config["cloud_channels"]:
+        channel_id = config["cloud_channels"][channel_name]
+        if channel_id == current_channel_id:
+            return channel_name

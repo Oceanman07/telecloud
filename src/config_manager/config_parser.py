@@ -6,8 +6,9 @@ from getpass import getpass
 
 from colorama import Fore
 
-from .config import Config
 from ..constants import CONFIG_PATH
+from .config import Config
+from .functions import get_current_cloud_channel
 from .config_loader import (
     get_config,
     get_api_id,
@@ -255,8 +256,11 @@ def parse_config():
     elif args.command == "pull":
         if not args.target_path:
             default_dir = get_default_pulled_directory()
-            target_path = {"is_file": False, "value": default_dir}
-            os.makedirs(default_dir, exist_ok=True)
+            current_cloud_channel = get_current_cloud_channel()
+            saved_pulled_dir = os.path.join(default_dir, current_cloud_channel)
+
+            target_path = {"is_file": False, "value": saved_pulled_dir}
+            os.makedirs(saved_pulled_dir, exist_ok=True)
         else:
             absolute_path = os.path.abspath(args.target_path)
             if os.path.isdir(absolute_path):
