@@ -122,8 +122,8 @@ def _parse_args():
 
     # setting channel command
     channel = subparsers.add_parser(
-        "channel",
-        usage="tc channel [options]",
+        "chan",
+        usage="tc chan [options]",
         description="if options not provided, all cloud channels will be listed",
         help="list, create, switch or delete cloud channels",
     )
@@ -223,7 +223,7 @@ def parse_config():
         "pull",
         "config",
         "list",
-        "channel",
+        "chan",
         "-p",
         "--password",
         "-n",
