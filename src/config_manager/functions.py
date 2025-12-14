@@ -10,7 +10,12 @@ from .. import aes, rsa
 from ..protector import load_symmetric_key
 from ..utils import logging, write_file
 from ..constants import ENCRYPTED_PRIVATE_KEY_PATH, CONFIG_PATH
-from ..tl import create_channel, set_channel_photo, delete_channel
+from ..tl import (
+    create_channel,
+    set_channel_photo,
+    delete_channel,
+    send_delete_confirmation_code,
+)
 from ..cloudmap import delete_pushed_files
 
 
@@ -138,6 +143,12 @@ async def delete_cloud_channel(client: TelegramClient, cloud_channel_name):
         logging(
             f"{Fore.RED}Failed{Fore.RESET} - {Fore.GREEN}{cloud_channel_name}{Fore.RESET} is being used"
         )
+        return
+
+    confirmation_code = await send_delete_confirmation_code(client, cloud_channel_name)
+    user_code = input("[?] Confirmation code: ")
+    if user_code != confirmation_code:
+        logging(f"{Fore.RED}Failed{Fore.RESET} - Invalid code")
         return
 
     cloud_channel_id = cloud_channels[cloud_channel_name]

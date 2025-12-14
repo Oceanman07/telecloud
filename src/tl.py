@@ -1,4 +1,5 @@
 import io
+import random
 import base64
 
 from telethon import TelegramClient
@@ -27,6 +28,15 @@ async def create_channel(client: TelegramClient, title="TeleCloud", about="Free 
     channel = await client(CreateChannelRequest(title, about, megagroup=False))
     channel_id = channel.chats[0].id
     return int("-100" + str(channel_id))  # PeerChannel → -100 + channel ID
+
+
+async def send_delete_confirmation_code(client: TelegramClient, cloud_channel_name):
+    confirmation_code = str(random.randint(1000, 9999))
+    msg = (
+        f"Confirmation code to **delete __{cloud_channel_name}__**: {confirmation_code}"
+    )
+    await client.send_message("me", msg)
+    return confirmation_code
 
 
 async def delete_channel(client: TelegramClient, cloud_channel_id):
